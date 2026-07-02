@@ -31,7 +31,8 @@ async def load_extensions():
 @bot.event
 async def on_ready():
     database.init_db()
-    print(f'Bot conectado como {bot.user}')
+    await bot.tree.sync()
+    print(f'Bot conectado como {bot.user} y comandos sincronizados')
 
 async def main():
     async with bot:
