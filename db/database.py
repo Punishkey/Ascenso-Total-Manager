@@ -11,18 +11,31 @@ def init_db():
     # Tabla de clubes
     cursor.execute('''CREATE TABLE IF NOT EXISTS clubes 
                       (id INTEGER PRIMARY KEY, user_id INTEGER, nombre TEXT, presupuesto INTEGER)''')
-    # Tabla de jugadores
-    cursor.execute('''CREATE TABLE IF NOT EXISTS jugadores 
-                      (id INTEGER PRIMARY KEY, club_id INTEGER, nombre TEXT, posicion TEXT, habilidad INTEGER)''')
     # Tabla de estadios
     cursor.execute('''CREATE TABLE IF NOT EXISTS estadios
                       (club_id INTEGER PRIMARY KEY,nombre TEXT,nivel INTEGER, capacidad INTEGER)''')
     # Tabla de jugadores
     cursor.execute('''CREATE TABLE IF NOT EXISTS jugadores 
-                      (id INTEGER PRIMARY KEY, club_id INTEGER, nombre TEXT, posicion TEXT, edad INTEGER,
+                      (id INTEGER PRIMARY KEY, club_id INTEGER, nombre TEXT, posicion_id TEXT, edad INTEGER,
                       velocidad INTEGER, resistencia INTEGER, anticipacion INTEGER, serenidad INTEGER,
                       trabajo_equipo INTEGER, precision_pases INTEGER, control_balon INTEGER,
                       profesionalidad INTEGER, potencial INTEGER, valor INTEGER, es_estrella BOOLEAN DEFAULT 0, FOREIGN KEY (club_id) REFERENCES clubes(id))''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS posiciones 
+                      (id INTEGER PRIMARY KEY, abreviatura TEXT UNIQUE, nombre_completo TEXT)''')
+    # Crear tabla de posiciones
+    cursor.execute('''CREATE TABLE IF NOT EXISTS posiciones
+                      (id INTEGER PRIMARY KEY, abreviatura TEXT, nombre_completo TEXT)''')
+
+    # Comprobar si está vacía antes de insertar
+    cursor.execute("SELECT count(*) FROM posiciones")
+    if cursor.fetchone()[0] == 0:
+        posiciones = [
+            (1, 'POR', 'Portero'), (2, 'DFC', 'Defensa Central'),
+            (3, 'MCD', 'Mediocentro'), (4, 'MC', 'Mediocentro'),
+            (5, 'EXT', 'Extremo'), (6, 'DC', 'Delantero')
+        ]
+        cursor.executemany("INSERT INTO posiciones VALUES (?,?,?)", posiciones)
+
     conn.commit()
     conn.close()
 

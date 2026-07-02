@@ -1,22 +1,39 @@
 from db.database import get_connection
-from config import PRESUPUESTO_INICIAL
+from utils.generator import obtener_estructura_plantilla, generar_jugador_con_posicion
+from db.jugador_queries import insertar_jugador_en_cursor
+from config import PRESUPUESTO_INICIAL, NIVEL_INICIAL, CAPACIDAD_INICIAL
+
 
 def crear_club(user_id, nombre_club):
+    
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Crear el club
-    cursor.execute('INSERT INTO clubes (user_id, nombre, presupuesto) VALUES (?, ?, ?)',
-                   (user_id, nombre_club, PRESUPUESTO_INICIAL))
-    club_id = cursor.lastrowid
+    try:
+        # Crear el club
+        cursor.execute('INSERT INTO clubes (user_id, nombre, presupuesto) VALUES (?, ?, ?)',
+                       (user_id, nombre_club, PRESUPUESTO_INICIAL))
+        club_id = cursor.lastrowid
 
-    # Crear el estadio
-    cursor.execute('INSERT INTO estadios (club_id, nombre, nivel, capacidad) VALUES (?, ?, ?, ?)',
-                   (club_id, f"Estadio de {nombre_club}", 1, 5000))
-    
-    conn.commit()
-    conn.close()
+        # Crear el estadio inicial
+        cursor.execute('INSERT INTO estadios (club_id, nombre, nivel, capacidad) VALUES (?, ?, ?, ?)',
+                       (club_id, f"Estadio de {nombre_club}", NIVEL_INICIAL, CAPACIDAD_INICIAL))
+
+        # Generar 18 jugadores
+        estructura = obtener_estructura_plantilla()
+        for pos_id in estructura:
+            data = generar_jugador_con_posicion(pos_id)
+            insertar_jugador_en_cursor(cursor, club_id, data)
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
+
     return club_id
+
 
 def ya_tiene_club(user_id):
     conn = get_connection()
@@ -25,6 +42,7 @@ def ya_tiene_club(user_id):
     resultado = cursor.fetchone()
     conn.close()
     return resultado is not None
+
 
 def obtener_club_id_por_usuario(user_id):
     conn = get_connection()
