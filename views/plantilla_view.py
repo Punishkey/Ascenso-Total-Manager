@@ -9,7 +9,7 @@ class PlantillaPaginator(discord.ui.View):
         self.jugadores = obtener_plantilla(club_id)
         self.page = 0
         self.per_page = 6
-        self.total_pages = (len(self.jugadores) - 1) // self.per_page
+        self.total_pages = (len(self.jugadores) - 1) // self.per_page if self.jugadores else 0
         self.update_buttons()
 
     def get_embed(self):
@@ -19,26 +19,38 @@ class PlantillaPaginator(discord.ui.View):
 
         embed = discord.Embed(title=f"📋 Plantilla (Pág {self.page + 1}/{self.total_pages + 1})",
                               color=discord.Color.green())
+
         for j in pagina:
-            num, nom, pos, est, val = j
+            # Desempaquetamos incluyendo la media
+            num, nom, pos, est, val, media = j
             icono = "⭐" if est else ""
             valor_formateado = f"{val:,.0f} €"
-            embed.add_field(name=f"#{num} | {pos} - {nom} {icono}",
-                            value=f"Valor: {valor_formateado}", inline=False)
+
+            # Mostramos la Media y el Valor en el mismo campo
+            field_name = f"#{num} | {nom} ({pos}) {icono}"
+            field_value = f"Media: **{int(media)}** | Valor: {valor_formateado}"
+
+            embed.add_field(name=field_name, value=field_value, inline=False)
+
         return embed
 
     def update_buttons(self):
-        self.children[0].disabled = (self.page == 0)  # Deshabilita "Anterior" en pág 1
-        self.children[1].disabled = (self.page == self.total_pages) # Deshabilita "Siguiente" en última
+        # Evitamos errores si no hay jugadores
+        if self.total_pages < 0:
+            return
+        self.children[0].disabled = (self.page == 0)
+        self.children[1].disabled = (self.page >= self.total_pages)
 
     @discord.ui.button(label="⬅️ Anterior", style=discord.ButtonStyle.secondary)
     async def anterior(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        self.page -= 1
-        self.update_buttons()
-        await interaction.response.edit_message(embed=self.get_embed(), view=self)
+        if self.page > 0:
+            self.page -= 1
+            self.update_buttons()
+            await interaction.response.edit_message(embed=self.get_embed(), view=self)
 
     @discord.ui.button(label="Siguiente ➡️", style=discord.ButtonStyle.secondary)
     async def siguiente(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        self.page += 1
-        self.update_buttons()  # Actualizamos estado
-        await interaction.response.edit_message(embed=self.get_embed(), view=self)
+        if self.page < self.total_pages:
+            self.page += 1
+            self.update_buttons()
+            await interaction.response.edit_message(embed=self.get_embed(), view=self)

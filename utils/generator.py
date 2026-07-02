@@ -22,38 +22,26 @@ def generar_dorsales_disponibles():
     return dorsales
 
 def generar_jugador_con_posicion(posicion_id, dorsal_disponible):
-    """
-    Genera un diccionario con atributos aleatorios para una posición fija.
-    """
     nombre_completo = f"{random.choice(NOMBRES)} {random.choice(APELLIDOS)}"
 
-    # Si es estrella, usamos su número fijo, si no, tomamos el que nos da la lista
+    # Lógica de número de camiseta (Única y correcta)
     if nombre_completo in ESTRELLAS_CONFIG:
         numero = ESTRELLAS_CONFIG[nombre_completo]["numero"]
     else:
-        numero = dorsal_disponible
+        numero = dorsal_disponible # Usamos el que viene del pop(0)
 
+    edad = random.randint(17, 35)
 
-    edad = random.randint(18, 35)
-
-    # Atributos
-    vel = random.randint(50, 90)
-    res = random.randint(50, 90)
-    anti = random.randint(50, 90)
-    sere = random.randint(50, 90)
-    trab = random.randint(50, 90)
-    pase = random.randint(50, 90)
-    ctrl = random.randint(50, 90)
-    prof = random.randint(50, 90)
-    pot = random.randint(50, 90)
-
-    # Lógica de número de camiseta:
-    # Si el nombre generado está en ESTRELLAS_CONFIG, usamos su número.
-    # Si no, asignamos un número aleatorio entre 1 y 99.
-    if nombre_completo in ESTRELLAS_CONFIG:
-        numero = ESTRELLAS_CONFIG[nombre_completo]["numero"]
-    else:
-        numero = random.randint(1, 99)
+    # Atributos ajustados (30-80) para media 50-60
+    vel = random.randint(30, 80)
+    res = random.randint(30, 80)
+    anti = random.randint(30, 80)
+    sere = random.randint(30, 80)
+    trab = random.randint(30, 80)
+    pase = random.randint(30, 80)
+    ctrl = random.randint(30, 80)
+    prof = random.randint(30, 80)
+    pot = random.randint(30, 80)
 
     return {
         "nombre": nombre_completo,

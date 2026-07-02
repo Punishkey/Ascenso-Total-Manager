@@ -45,22 +45,57 @@ def obtener_plantilla(club_id):
     cursor = conn.cursor()
 
     cursor.execute('''
-                   SELECT j.numero, j.nombre, p.abreviatura, j.es_estrella, j.valor
+                   SELECT j.numero,
+                          j.nombre,
+                          p.abreviatura,
+                          j.es_estrella,
+                          j.valor,
+                          ROUND((j.velocidad + j.resistencia + j.anticipacion + j.serenidad +
+                                 j.trabajo_equipo + j.precision_pases + j.control_balon +
+                                 j.profesionalidad + j.potencial) / 9.0) as media
                    FROM jugadores j
                             JOIN posiciones p ON j.posicion_id = p.id
                    WHERE j.club_id = ?
-                   ORDER BY
-                       CASE p.abreviatura
-                            WHEN 'POR' THEN 1
-                            WHEN 'DFC' THEN 2
-                            WHEN 'MCD' THEN 3
-                            WHEN 'MC' THEN 4
-                            WHEN 'EXT' THEN 5
-                            WHEN 'DC' THEN 6
-                            ELSE 7 END, j.numero ASC
-    ''', (club_id,))
+                   ORDER BY CASE p.abreviatura
+                                WHEN 'POR' THEN 1
+                                WHEN 'DFC' THEN 2
+                                WHEN 'MCD' THEN 3
+                                WHEN 'MC' THEN 4
+                                WHEN 'EXT' THEN 5
+                                WHEN 'DC' THEN 6
+                                ELSE 7 END, j.numero ASC
+                   ''', (club_id,))
 
     jugadores = cursor.fetchall()
 
     conn.close()
     return jugadores
+
+
+def obtener_jugador_por_numero(club_id, numero):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Seleccionamos todas las columnas necesarias para la ficha
+    cursor.execute('''
+                   SELECT nombre,
+                          edad,
+                          velocidad,
+                          resistencia,
+                          anticipacion,
+                          serenidad,
+                          trabajo_equipo,
+                          precision_pases,
+                          control_balon,
+                          profesionalidad,
+                          potencial,
+                          valor,
+                          es_estrella
+                   FROM jugadores
+                   WHERE club_id = ?
+                     AND numero = ?
+                   ''', (club_id, numero))
+
+    jugador = cursor.fetchone()
+    conn.close()
+    return jugador

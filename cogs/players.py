@@ -82,5 +82,38 @@ class Players(commands.Cog):
 
         await interaction.response.send_message(embed=embed)
 
+    @app_commands.command(name="ficha", description="Ver la ficha técnica detallada de un jugador")
+    @app_commands.describe(numero="El número de dorsal del jugador")
+    async def ficha(self, interaction: discord.Interaction, numero: int):
+        club_id = club_queries.obtener_club_id_por_usuario(interaction.user.id)
+
+        jugador = jugador_queries.obtener_jugador_por_numero(club_id, numero)
+
+        if not jugador:
+            await interaction.response.send_message(f"❌ No se encontró ningún jugador con el dorsal #{numero}.",
+                                                    ephemeral=True)
+            return
+
+        # Desempaquetamos los datos
+        (nombre, edad, vel, res, anti, sere, trab, pase, ctrl, prof, pot, valor, estrella) = jugador
+
+        # Calculamos la media
+        suma_total = vel + res + anti + sere + trab + pase + ctrl + prof + pot
+        media = round(suma_total / 9)
+
+        # Creamos el Embed detallado
+        embed = discord.Embed(title=f"⚽ Ficha Técnica: {nombre} (#{numero})", color=discord.Color.blue())
+        embed.add_field(name="Información", value=f"Edad: {edad}\nValor: {valor:,.0f} €", inline=False)
+        embed.add_field(name="Calificación Global", value=f"⭐ {media}/100", inline=False)
+        embed.add_field(name="Atributos",
+                        value=f"🏃 Vel: {vel} | 🔋 Res: {res}\n👁️ Anti: {anti} | 🧘 Sere: {sere}\n🤝 Trab: {trab} | 🎯 Pase: {pase}\n⚽ Ctrl: {ctrl}",
+                        inline=False)
+        embed.add_field(name="Mentalidad", value=f"📈 Potencial: {pot} | 🧠 Prof: {prof}", inline=False)
+
+        if estrella:
+            embed.set_footer(text="⭐ Jugador Estrella")
+
+        await interaction.response.send_message(embed=embed)
+
 async def setup(bot):
     await bot.add_cog(Players(bot))
