@@ -4,7 +4,7 @@ import asyncio
 import typing
 from discord.ext import commands
 from dotenv import load_dotenv
-import database
+from db import database
 
 # Configuración de variables
 load_dotenv()
@@ -18,7 +18,7 @@ intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
-bot = commands.Bot(command_prefix='/', intents=intents)
+bot = commands.Bot(command_prefix='!', intents=intents, owner_id=118851319984422913)
 
 async def load_extensions():
     # Busca todos los archivos .py en la carpeta 'cogs'

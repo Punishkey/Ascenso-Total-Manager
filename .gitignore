@@ -9,3 +9,8 @@
 .idea/modules.xml
 .idea/vcs.xml
 manager.db
+owner.py~
+cogs/owner.py
+cogs/owner.py
+/cogs/__pycache__
+cogs/owner.py
