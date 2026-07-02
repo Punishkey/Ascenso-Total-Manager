@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from db import club_queries, estadio_queries, jugador_queries
+from views.plantilla_view import PlantillaPaginator
 
 class Players(commands.Cog):
     def __init__(self, bot):
@@ -50,6 +51,9 @@ class Players(commands.Cog):
     async def plantilla(self, interaction: discord.Interaction):
         # Obtener ID del club
         club_id = club_queries.obtener_club_id_por_usuario(interaction.user.id)
+
+        view = PlantillaPaginator(club_id)
+        await interaction.response.send_message(embed=view.get_embed(), view=view)
 
         if not club_id:
             await interaction.response.send_message("❌ No tienes un club fundado. Usa `/fundar` primero.",

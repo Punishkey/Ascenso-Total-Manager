@@ -49,8 +49,16 @@ def obtener_plantilla(club_id):
                    FROM jugadores j
                             JOIN posiciones p ON j.posicion_id = p.id
                    WHERE j.club_id = ?
-                   ORDER BY j.numero
-                   ''', (club_id,))
+                   ORDER BY
+                       CASE p.abreviatura
+                            WHEN 'POR' THEN 1
+                            WHEN 'DFC' THEN 2
+                            WHEN 'MCD' THEN 3
+                            WHEN 'MC' THEN 4
+                            WHEN 'EXT' THEN 5
+                            WHEN 'DC' THEN 6
+                            ELSE 7 END, j.numero ASC
+    ''', (club_id,))
 
     jugadores = cursor.fetchall()
 
