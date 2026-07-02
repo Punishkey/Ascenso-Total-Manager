@@ -1,8 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from db import club_queries, estadio_queries
-
+from db import club_queries, estadio_queries, jugador_queries
 
 class Players(commands.Cog):
     def __init__(self, bot):
@@ -44,6 +43,32 @@ class Players(commands.Cog):
         embed.add_field(name="📍 Nombre del Estadio", value=nombre_estadio, inline=True)
         embed.add_field(name="⭐ Nivel", value=nivel, inline=True)
         embed.add_field(name="👥 Capacidad", value=f"{capacidad} asientos", inline=True)
+
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="plantilla", description="Ver los jugadores de tu equipo")
+    async def plantilla(self, interaction: discord.Interaction):
+        # Obtener ID del club
+        club_id = club_queries.obtener_club_id_por_usuario(interaction.user.id)
+
+        if not club_id:
+            await interaction.response.send_message("❌ No tienes un club fundado. Usa `/fundar` primero.",
+                                                    ephemeral=True)
+            return
+
+        # Llamamos a la función de jugadores pasando el club_id
+        jugadores = jugador_queries.obtener_plantilla(club_id)
+
+        if not jugadores:
+            await interaction.response.send_message("Tu plantilla está vacía.", ephemeral=True)
+            return
+
+        embed = discord.Embed(title="📋 Plantilla del Club", color=discord.Color.green())
+
+        for j in jugadores:
+            nombre, pos, es_estrella, valor = j
+            icono = "⭐" if es_estrella else ""
+            embed.add_field(name=f"{icono} {nombre} ({pos})", value=f"Valor: {valor:,} €", inline=False)
 
         await interaction.response.send_message(embed=embed)
 

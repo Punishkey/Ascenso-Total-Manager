@@ -14,3 +14,7 @@ cogs/owner.py
 cogs/owner.py
 /cogs/__pycache__
 cogs/owner.py
+db/__pycache__/club_queries.cpython-312.pyc
+db/__pycache__/database.cpython-312.pyc
+db/__pycache__/jugador_queries.cpython-312.pyc
+db/__pycache__/database.cpython-312.pyc
