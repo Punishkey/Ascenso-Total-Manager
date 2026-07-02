@@ -7,3 +7,8 @@ APELLIDOS = [
     "Pérez", "García", "Rodríguez", "López", "Martínez",
     "Sánchez", "Gómez", "Fernández", "Díaz", "Torres"
 ]
+
+ESTRELLAS_CONFIG = {
+    "Cristiano Ronaldo": {"numero": 7},
+    "Messi": {"numero": 10},
+}

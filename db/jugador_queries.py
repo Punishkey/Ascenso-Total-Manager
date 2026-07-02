@@ -1,7 +1,7 @@
 from db.database import get_connection
 
 
-def crear_jugador(club_id, nombre, posicion_id, edad, vel, res, anti, sere, trab, pase, ctrl, prof, pot):
+def crear_jugador(club_id, nombre, numero, posicion_id, edad, vel, res, anti, sere, trab, pase, ctrl, prof, pot):
     """ Inserta un nuevo jugador en la base de datos usando posicion_id como FK. """
 
     # Calculamos la media de atributos para el valor y la estrella
@@ -15,11 +15,11 @@ def crear_jugador(club_id, nombre, posicion_id, edad, vel, res, anti, sere, trab
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute('''
-                   INSERT INTO jugadores (club_id, nombre, posicion_id, edad, velocidad, resistencia,
+                   INSERT INTO jugadores (club_id, nombre, numero, posicion_id, edad, velocidad, resistencia,
                                           anticipacion, serenidad, trabajo_equipo, precision_pases,
                                           control_balon, profesionalidad, potencial, valor, es_estrella)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                   ''', (club_id, nombre, posicion_id, edad, vel, res, anti, sere, trab, pase, ctrl, prof, pot, valor,
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ''', (club_id, nombre, numero, posicion_id, edad, vel, res, anti, sere, trab, pase, ctrl, prof, pot, valor,
                          es_estrella))
     conn.commit()
     conn.close()
@@ -32,11 +32,11 @@ def insertar_jugador_en_cursor(cursor, club_id, data):
     es_estrella = 1 if (suma / 7) > 85 else 0
 
     cursor.execute('''
-                   INSERT INTO jugadores (club_id, nombre, posicion_id, edad, velocidad, resistencia,
+                   INSERT INTO jugadores (club_id, nombre, numero, posicion_id, edad, velocidad, resistencia,
                                           anticipacion, serenidad, trabajo_equipo, precision_pases,
                                           control_balon, profesionalidad, potencial, valor, es_estrella)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                   ''', (club_id, data['nombre'], data['posicion_id'], data['edad'], data['vel'], data['res'],
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ''', (club_id, data['nombre'], data['numero'], data['posicion_id'], data['edad'], data['vel'], data['res'],
                          data['anti'], data['sere'], data['trab'], data['pase'], data['ctrl'],
                          data['prof'], data['pot'], valor, es_estrella))
 
@@ -45,10 +45,11 @@ def obtener_plantilla(club_id):
     cursor = conn.cursor()
 
     cursor.execute('''
-                   SELECT j.nombre, COALESCE(p.abreviatura, 'N/A'), j.es_estrella, j.valor
+                   SELECT j.numero, j.nombre, p.abreviatura, j.es_estrella, j.valor
                    FROM jugadores j
-                            LEFT JOIN posiciones p ON j.posicion_id = p.id
+                            JOIN posiciones p ON j.posicion_id = p.id
                    WHERE j.club_id = ?
+                   ORDER BY j.numero
                    ''', (club_id,))
 
     jugadores = cursor.fetchall()

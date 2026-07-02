@@ -16,7 +16,7 @@ def init_db():
                       (club_id INTEGER PRIMARY KEY,nombre TEXT,nivel INTEGER, capacidad INTEGER)''')
     # Tabla de jugadores
     cursor.execute('''CREATE TABLE IF NOT EXISTS jugadores 
-                      (id INTEGER PRIMARY KEY, club_id INTEGER, nombre TEXT, posicion_id TEXT, edad INTEGER,
+                      (id INTEGER PRIMARY KEY, club_id INTEGER, nombre TEXT, numero INTEGER, posicion_id TEXT, edad INTEGER,
                       velocidad INTEGER, resistencia INTEGER, anticipacion INTEGER, serenidad INTEGER,
                       trabajo_equipo INTEGER, precision_pases INTEGER, control_balon INTEGER,
                       profesionalidad INTEGER, potencial INTEGER, valor INTEGER, es_estrella BOOLEAN DEFAULT 0, FOREIGN KEY (club_id) REFERENCES clubes(id))''')

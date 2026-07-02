@@ -1,11 +1,11 @@
 from db.database import get_connection
-from utils.generator import obtener_estructura_plantilla, generar_jugador_con_posicion
+from utils.generator import obtener_estructura_plantilla, generar_jugador_con_posicion, generar_dorsales_disponibles
 from db.jugador_queries import insertar_jugador_en_cursor
 from config import PRESUPUESTO_INICIAL, NIVEL_INICIAL, CAPACIDAD_INICIAL
 
 
 def crear_club(user_id, nombre_club):
-    
+
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -21,8 +21,9 @@ def crear_club(user_id, nombre_club):
 
         # Generar 18 jugadores
         estructura = obtener_estructura_plantilla()
+        dorsales = generar_dorsales_disponibles()
         for pos_id in estructura:
-            data = generar_jugador_con_posicion(pos_id)
+            data = generar_jugador_con_posicion(pos_id, dorsales.pop(0))
             insertar_jugador_en_cursor(cursor, club_id, data)
 
         conn.commit()

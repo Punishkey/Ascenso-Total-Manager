@@ -66,9 +66,15 @@ class Players(commands.Cog):
         embed = discord.Embed(title="📋 Plantilla del Club", color=discord.Color.green())
 
         for j in jugadores:
-            nombre, pos, es_estrella, valor = j
+            # Ahora j contiene: numero, nombre, pos, es_estrella, valor
+            numero, nombre, pos, es_estrella, valor = j
+
             icono = "⭐" if es_estrella else ""
-            embed.add_field(name=f"{icono} {nombre} ({pos})", value=f"Valor: {valor:,} €", inline=False)
+            # Formateamos el título del campo con el dorsal
+            field_title = f"#{numero} | {nombre} ({pos}) {icono}"
+            field_value = f"Valor: {valor:,} €"
+
+            embed.add_field(name=field_title, value=field_value, inline=False)
 
         await interaction.response.send_message(embed=embed)
 
