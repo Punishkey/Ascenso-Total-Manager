@@ -15,6 +15,8 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
     # Variables para el resumen final (Diccionario para almacenar jugador y su equipo)
     historial_jugadores = {}
     tarjetas_jugadores = []
+    posesion_a = 0
+    posesion_b = 0
 
     embed = discord.Embed(title=f"⚽ {nombre_a} vs {nombre_b}", color=discord.Color.green())
     embed.add_field(name=nombre_a, value=f"Media: {media_a}\nGoles: 0", inline=True)
@@ -42,6 +44,12 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
         club_id = club_a_id if protagonista_a else club_b_id
         club_nombre = nombre_a if protagonista_a else nombre_b
 
+        # Registrar posesión
+        if protagonista_a:
+            posesion_a += 1
+        else:
+            posesion_b += 1
+
         # Obtener datos
         jugador = obtener_jugador_aleatorio(club_id)
         frase = random.choice(EVENTOS_NARRATIVA[tipo_evento])
@@ -53,7 +61,9 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
         historial_jugadores[jugador]["total"] += 1
 
         if tipo_evento == "tarjeta":
-            tarjetas_jugadores.append(f"Minuto {minuto}': {jugador} ({club_nombre})")
+            # Elegir aleatoriamente entre amarilla o roja
+            tipo_tarjeta = "🟨" if random.random() > 0.2 else "🟥"
+            tarjetas_jugadores.append(f"{tipo_tarjeta} Min. {minuto}: {jugador} ({club_nombre})")
 
         # Cálculo de éxito si es GOL
         if tipo_evento == "gol":
@@ -73,12 +83,22 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
         await msg.edit(embed=embed)
 
     # --- Resumen Final ---
-    # Buscamos al jugador estrella basado en el total de intervenciones
+    total_eventos = posesion_a + posesion_b
+    porcentaje_a = int((posesion_a / total_eventos) * 100)
+    porcentaje_b = 100 - porcentaje_a
+
+    # Crear barra visual (total de 10 bloques)
+    bloques_a = int(porcentaje_a / 10)
+    bloques_b = 10 - bloques_a
+    barra_posesion = ("█" * bloques_a) + ("░" * bloques_b)
+
     jugador_estrella = max(historial_jugadores, key=lambda x: historial_jugadores[x]["total"])
     datos_estrella = historial_jugadores[jugador_estrella]
 
     resumen_embed = discord.Embed(title="📊 Resumen del Partido", color=discord.Color.green())
     resumen_embed.add_field(name="Resultado Final", value=f"**{nombre_a} {goles_a} - {goles_b} {nombre_b}**",
+                            inline=False)
+    resumen_embed.add_field(name="Posesión del balón", value=f"{nombre_a}: {porcentaje_a}% | {nombre_b}: {porcentaje_b}%\n`{barra_posesion}`",
                             inline=False)
     resumen_embed.add_field(name="Jugador Destacado",
                             value=f"⭐ {jugador_estrella} ({datos_estrella['equipo']}) con {datos_estrella['total']} intervenciones",
