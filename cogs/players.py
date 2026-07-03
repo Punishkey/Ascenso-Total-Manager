@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from db import club_queries, estadio_queries, jugador_queries
+from db.transaction_queries import obtener_estadisticas_club
 from views.plantilla_view import PlantillaPaginator
 from views.estadio_view import EstadioView
 
@@ -36,8 +37,10 @@ class Players(commands.Cog):
             await interaction.response.send_message("❌ No tienes un club fundado. Usa `/fundar` primero.",
                                                     ephemeral=True)
             return
+
         # Obtenemos info del estadio
         info = estadio_queries.obtener_info_club_y_estadio(interaction.user.id)
+        stats = obtener_estadisticas_club(club_id)
         nombre_club, presupuesto, nombre_estadio, nivel, capacidad = info
 
         # Creamos el Embed profesional
@@ -47,8 +50,18 @@ class Players(commands.Cog):
         embed.add_field(name="⭐ Nivel", value=nivel, inline=True)
         embed.add_field(name="👥 Capacidad", value=f"{capacidad} asientos", inline=True)
 
+        historial_str = (
+            f"✅ Victorias: {stats.get(1, 0)}\n"
+            f"🤝 Empates: {stats.get(0, 0)}\n"
+            f"❌ Derrotas: {stats.get(-1, 0)}\n"
+            f"📊 Total: {stats.get('total', 0)}"
+        )
+        embed.add_field(name="🏆 Historial de Partidos", value=historial_str, inline=False)
+
+        view = EstadioView(club_id, interaction.user.id)
+
         # Se envía con la view correctamente
-        await interaction.response.send_message(embed=embed, view=EstadioView(club_id), ephemeral=True)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
     @app_commands.command(name="plantilla", description="Ver los jugadores de tu equipo")
     async def plantilla(self, interaction: discord.Interaction):

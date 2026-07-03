@@ -83,9 +83,8 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
 
         await msg.edit(embed=embed)
 
-    # Registro en BD
-    gano = goles_a > goles_b
-    registrar_resultado_partido(club_a_id, club_b_id, goles_a, goles_b, gano)
+    # Registro en BD (Nota: gano ya no se pasa, la función lo calcula internamente)
+    registrar_resultado_partido(club_a_id, club_b_id, goles_a, goles_b)
 
     # --- Resumen Final ---
     total_eventos = posesion_a + posesion_b

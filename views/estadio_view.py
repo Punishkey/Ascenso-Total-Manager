@@ -1,7 +1,9 @@
 import discord
 from db.club_queries import obtener_info_estadio
+from db.estadio_queries import obtener_info_club_y_estadio
 from views.plantilla_view import PlantillaPaginator
 from views.ConfirmacionView import ConfirmacionMejoraView
+from db.transaction_queries import obtener_estadisticas_club
 
 
 class EstadioSelect(discord.ui.Select):
@@ -30,7 +32,7 @@ class EstadioSelect(discord.ui.Select):
             await interaction.response.edit_message(embed=embed, view=ConfirmacionMejoraView(self.club_id, coste))
 
         elif self.values[0] == "plantilla":
-            view = PlantillaPaginator(self.club_id)
+            view = PlantillaPaginator(self.club_id, interaction.user.id)
             await interaction.response.edit_message(content="Aquí tienes tu plantilla:", embed=view.get_embed(),
                                                     view=view)
 
@@ -40,6 +42,29 @@ class EstadioSelect(discord.ui.Select):
 
 
 class EstadioView(discord.ui.View):
-    def __init__(self, club_id):
+    def __init__(self, club_id, user_id):
         super().__init__(timeout=60)
+        self.club_id = club_id
+        self.user_id = user_id
         self.add_item(EstadioSelect(club_id))
+
+    def actualizar_embed_inicial(self):
+        # Recargamos info fresca de BD
+        info = obtener_info_club_y_estadio(self.user_id)
+        stats = obtener_estadisticas_club(self.club_id)
+        nombre_club, presupuesto, nombre_estadio, nivel, capacidad = info
+
+        embed = discord.Embed(title=f"🏟️ Información de {nombre_club}", color=discord.Color.blue())
+        embed.add_field(name="💰 Presupuesto", value=f"{presupuesto} monedas", inline=False)
+        embed.add_field(name="📍 Nombre del Estadio", value=nombre_estadio, inline=True)
+        embed.add_field(name="⭐ Nivel", value=nivel, inline=True)
+        embed.add_field(name="👥 Capacidad", value=f"{capacidad} asientos", inline=True)
+
+        historial_str = (
+            f"✅ Victorias: {stats.get(1, 0)}\n"
+            f"🤝 Empates: {stats.get(0, 0)}\n"
+            f"❌ Derrotas: {stats.get(-1, 0)}\n"
+            f"📊 Total: {stats.get('total', 0)}"
+        )
+        embed.add_field(name="🏆 Historial de Partidos", value=historial_str, inline=False)
+        return embed

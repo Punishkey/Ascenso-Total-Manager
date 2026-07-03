@@ -3,9 +3,10 @@ from db.jugador_queries import obtener_plantilla
 
 
 class PlantillaPaginator(discord.ui.View):
-    def __init__(self, club_id):
+    def __init__(self, club_id, user_id):
         super().__init__(timeout=60)
         self.club_id = club_id
+        self.user_id = user_id
         self.jugadores = obtener_plantilla(club_id)
         self.page = 0
         self.per_page = 6
@@ -40,12 +41,13 @@ class PlantillaPaginator(discord.ui.View):
     async def volver_estadio(self, interaction: discord.Interaction, _button: discord.ui.Button):
         # IMPORTACIÓN LOCAL: Se hace aquí dentro para evitar el bucle
         from views.estadio_view import EstadioView
-        from views.embed_utils import crear_embed_estadio
+
+        view = EstadioView(self.club_id, self.user_id)
 
         await interaction.response.edit_message(
             content=None,
-            embed=crear_embed_estadio(self.club_id),
-            view=EstadioView(self.club_id)
+            embed=view.actualizar_embed_inicial(),
+            view=view
         )
 
     @discord.ui.button(label="⬅️ Anterior", style=discord.ButtonStyle.secondary, row=0)
