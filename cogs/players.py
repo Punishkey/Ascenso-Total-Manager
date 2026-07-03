@@ -3,11 +3,12 @@ from discord import app_commands
 from discord.ext import commands
 from db import club_queries, estadio_queries, jugador_queries
 from views.plantilla_view import PlantillaPaginator
+from views.estadio_view import EstadioView
+
 
 class Players(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
 
     @app_commands.command(name="fundar", description="Funda tu propio club de fútbol")
     async def fundar(self, interaction: discord.Interaction, nombre: str):
@@ -28,14 +29,15 @@ class Players(commands.Cog):
 
     @app_commands.command(name="estadio", description="Consulta los datos de tu club y estadio")
     async def estadio(self, interaction: discord.Interaction):
-        # Llamamos a nuestra nueva función
-        info = estadio_queries.obtener_info_club_y_estadio(interaction.user.id)
+        # Necesitamos el club_id para inicializar la View
+        club_id = club_queries.obtener_club_id_por_usuario(interaction.user.id)
 
-        if not info:
+        if not club_id:
             await interaction.response.send_message("❌ No tienes un club fundado. Usa `/fundar` primero.",
                                                     ephemeral=True)
             return
-
+        # Obtenemos info del estadio
+        info = estadio_queries.obtener_info_club_y_estadio(interaction.user.id)
         nombre_club, presupuesto, nombre_estadio, nivel, capacidad = info
 
         # Creamos el Embed profesional
@@ -45,42 +47,28 @@ class Players(commands.Cog):
         embed.add_field(name="⭐ Nivel", value=nivel, inline=True)
         embed.add_field(name="👥 Capacidad", value=f"{capacidad} asientos", inline=True)
 
-        await interaction.response.send_message(embed=embed)
+        # Se envía con la view correctamente
+        await interaction.response.send_message(embed=embed, view=EstadioView(club_id))
 
     @app_commands.command(name="plantilla", description="Ver los jugadores de tu equipo")
     async def plantilla(self, interaction: discord.Interaction):
         # Obtener ID del club
         club_id = club_queries.obtener_club_id_por_usuario(interaction.user.id)
 
-        view = PlantillaPaginator(club_id)
-        await interaction.response.send_message(embed=view.get_embed(), view=view)
-
         if not club_id:
             await interaction.response.send_message("❌ No tienes un club fundado. Usa `/fundar` primero.",
                                                     ephemeral=True)
             return
 
-        # Llamamos a la función de jugadores pasando el club_id
-        jugadores = jugador_queries.obtener_plantilla(club_id)
+        # Usamos directamente el paginador
+        view = PlantillaPaginator(club_id)
 
-        if not jugadores:
+        # Verificamos si hay jugadores para mostrar
+        if not view.jugadores:
             await interaction.response.send_message("Tu plantilla está vacía.", ephemeral=True)
             return
 
-        embed = discord.Embed(title="📋 Plantilla del Club", color=discord.Color.green())
-
-        for j in jugadores:
-            # Ahora j contiene: numero, nombre, pos, es_estrella, valor
-            numero, nombre, pos, es_estrella, valor = j
-
-            icono = "⭐" if es_estrella else ""
-            # Formateamos el título del campo con el dorsal
-            field_title = f"#{numero} | {nombre} ({pos}) {icono}"
-            field_value = f"Valor: {valor:,} €"
-
-            embed.add_field(name=field_title, value=field_value, inline=False)
-
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=view.get_embed(), view=view)
 
     @app_commands.command(name="ficha", description="Ver la ficha técnica detallada de un jugador")
     @app_commands.describe(numero="El número de dorsal del jugador")
@@ -114,6 +102,7 @@ class Players(commands.Cog):
             embed.set_footer(text="⭐ Jugador Estrella")
 
         await interaction.response.send_message(embed=embed)
+
 
 async def setup(bot):
     await bot.add_cog(Players(bot))

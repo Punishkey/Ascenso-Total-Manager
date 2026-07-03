@@ -6,6 +6,7 @@ DB_NAME = 'manager.db'
 CAPACIDAD_INICIAL = 5000
 NIVEL_INICIAL = 1
 PRESUPUESTO_INICIAL = 1000
+COSTE_MEJORA_ESTADIO = 1000
 
 # Rango de habilidades (stats) para nuevos jugadores
 HABILIDAD_MIN = 50

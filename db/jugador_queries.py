@@ -63,7 +63,7 @@ def obtener_plantilla(club_id):
                                 WHEN 'MC' THEN 4
                                 WHEN 'EXT' THEN 5
                                 WHEN 'DC' THEN 6
-                                ELSE 7 END, j.numero ASC
+                                ELSE 7 END, j.numero
                    ''', (club_id,))
 
     jugadores = cursor.fetchall()

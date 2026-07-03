@@ -24,3 +24,4 @@ db/__pycache__/database.cpython-312.pyc
 utils/__pycache__/generator.cpython-312.pyc
 views/__pycache__/plantilla_view.cpython-312.pyc
 /db/__pycache__
+/views/__pycache__

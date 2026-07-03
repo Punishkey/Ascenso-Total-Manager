@@ -21,34 +21,41 @@ class PlantillaPaginator(discord.ui.View):
                               color=discord.Color.green())
 
         for j in pagina:
-            # Desempaquetamos incluyendo la media
             num, nom, pos, est, val, media = j
             icono = "⭐" if est else ""
             valor_formateado = f"{val:,.0f} €"
-
-            # Mostramos la Media y el Valor en el mismo campo
             field_name = f"#{num} | {nom} ({pos}) {icono}"
             field_value = f"Media: **{int(media)}** | Valor: {valor_formateado}"
-
             embed.add_field(name=field_name, value=field_value, inline=False)
 
         return embed
 
     def update_buttons(self):
-        # Evitamos errores si no hay jugadores
         if self.total_pages < 0:
             return
-        self.children[0].disabled = (self.page == 0)
-        self.children[1].disabled = (self.page >= self.total_pages)
+        self.children[1].disabled = (self.page == 0)
+        self.children[2].disabled = (self.page >= self.total_pages)
 
-    @discord.ui.button(label="⬅️ Anterior", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="⬅️ Volver a Estadio", style=discord.ButtonStyle.primary, row=1)
+    async def volver_estadio(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        # IMPORTACIÓN LOCAL: Se hace aquí dentro para evitar el bucle
+        from views.estadio_view import EstadioView
+        from views.embed_utils import crear_embed_estadio
+
+        await interaction.response.edit_message(
+            content=None,
+            embed=crear_embed_estadio(self.club_id),
+            view=EstadioView(self.club_id)
+        )
+
+    @discord.ui.button(label="⬅️ Anterior", style=discord.ButtonStyle.secondary, row=0)
     async def anterior(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if self.page > 0:
             self.page -= 1
             self.update_buttons()
             await interaction.response.edit_message(embed=self.get_embed(), view=self)
 
-    @discord.ui.button(label="Siguiente ➡️", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Siguiente ➡️", style=discord.ButtonStyle.secondary, row=0)
     async def siguiente(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if self.page < self.total_pages:
             self.page += 1

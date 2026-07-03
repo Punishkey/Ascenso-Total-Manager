@@ -13,3 +13,14 @@ def obtener_info_club_y_estadio(user_id):
     resultado = cursor.fetchone()
     conn.close()
     return resultado
+
+def renombrar_estadio_db(club_id, nuevo_nombre):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE estadios SET nombre = ? WHERE club_id = ?", (nuevo_nombre, club_id))
+        conn.commit()
+        conn.close()
+        return True
+    except:
+        return False

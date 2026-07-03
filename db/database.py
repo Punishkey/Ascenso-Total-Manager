@@ -13,7 +13,7 @@ def init_db():
                       (id INTEGER PRIMARY KEY, user_id INTEGER, nombre TEXT, presupuesto INTEGER)''')
     # Tabla de estadios
     cursor.execute('''CREATE TABLE IF NOT EXISTS estadios
-                      (club_id INTEGER PRIMARY KEY,nombre TEXT,nivel INTEGER, capacidad INTEGER)''')
+                      (club_id INTEGER PRIMARY KEY,nombre TEXT,nivel INTEGER, capacidad INTEGER, ingresos_base INTEGER)''')
     # Tabla de jugadores
     cursor.execute('''CREATE TABLE IF NOT EXISTS jugadores 
                       (id INTEGER PRIMARY KEY, club_id INTEGER, nombre TEXT, numero INTEGER, posicion_id TEXT, edad INTEGER,
