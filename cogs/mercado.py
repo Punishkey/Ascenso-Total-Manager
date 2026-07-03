@@ -25,9 +25,8 @@ class MercadoCog(commands.Cog):
             await interaction.response.send_message("❌ No tienes ningún jugador con ese dorsal.", ephemeral=True)
             return
 
-        jugador_id = jugador[0]
-
         # Publicamos en mercado
+        jugador_id = jugador[0]
         if publicar_jugador(jugador_id, club_id, precio):
             await interaction.response.send_message(
                 f"✅ ¡{jugador[1]} (dorsal #{dorsal}) ha sido puesto en el mercado por {precio} monedas!",

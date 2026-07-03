@@ -13,16 +13,39 @@ class MercadoView(discord.ui.View):
         if not self.jugadores:
             return discord.Embed(title="🛒 Mercado", description="Vacío.", color=discord.Color.red())
 
-        # fichaje_id, nombre, pos, precio, club, media
-        fichaje = self.jugadores[self.current_page]
-        fichaje_id, nombre, pos, precio, club, media = fichaje
+        try:
+            # Diccionario de mapeo de posiciones
 
-        embed = discord.Embed(title=f"🛒 Mercado de Fichajes", color=discord.Color.gold())
-        embed.add_field(name="Jugador", value=f"**{nombre}** ({pos})", inline=False)
-        embed.add_field(name="Media", value=f"⭐ {media:.1f}", inline=True)
-        embed.add_field(name="Precio", value=f"💰 {precio:,} monedas", inline=True)
-        embed.add_field(name="Club Vendedor", value=f"🏟️ {club}", inline=False)
-        return embed
+            mapeo_posiciones = {
+                "1": "POR",
+                "2": "DFC",
+                "3": "MCD",
+                "4": "MC",
+                "5": "EXT",
+                "6": "DC"
+            }
+
+            fichaje = self.jugadores[self.current_page]
+            fichaje_id, nombre, pos, precio, club, media = fichaje
+
+            # Convertimos el ID de posición a texto, o dejamos el número si no existe en el diccionario
+            nombre_posicion = mapeo_posiciones.get(str(pos), str(pos))
+
+            # Formateo seguro
+            nombre_display = nombre if nombre else "Jugador Desconocido"
+            media_display = f"{media:.1f}" if media is not None else "0.0"
+
+            embed = discord.Embed(title=f"🛒 Mercado de Fichajes", color=discord.Color.gold())
+            embed.add_field(name="Jugador", value=f"**{nombre_display}** ({nombre_posicion})", inline=False)
+            embed.add_field(name="Media", value=f"⭐ {media_display}", inline=True)
+            embed.add_field(name="Precio", value=f"💰 {precio:,} monedas", inline=True)
+            embed.add_field(name="Club Vendedor", value=f"🏟️ {club}", inline=False)
+            embed.set_footer(text=f"Página {self.current_page + 1} de {len(self.jugadores)}")
+            return embed
+
+        except Exception as e:
+            print(f"❌ ERROR CRÍTICO en get_embed: {e}")
+            return discord.Embed(title="Error", description=f"Error en datos: {e}", color=discord.Color.red())
 
     @discord.ui.button(label="◀️", style=discord.ButtonStyle.primary)
     async def prev(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -44,7 +67,7 @@ class MercadoView(discord.ui.View):
             self.current_page = 0
             await interaction.response.edit_message(content="✅ ¡Jugador fichado!", embed=self.get_embed(), view=self)
         else:
-            await interaction.response.send_message(f"❌ {mensaje}", ephemeral=True)
+            await interaction.followup.send(f"❌ {mensaje}", ephemeral=True)
 
     @discord.ui.button(label="▶️", style=discord.ButtonStyle.primary)
     async def next(self, interaction: discord.Interaction, button: discord.ui.Button):
