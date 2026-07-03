@@ -14,6 +14,7 @@ class EstadioSelect(discord.ui.Select):
             discord.SelectOption(label="Renombrar Estadio", value="rename", emoji="✍️"),
             discord.SelectOption(label="Ver Plantilla", value="plantilla", emoji="📋"),
         ]
+
         super().__init__(placeholder="Selecciona una acción...", options=options)
 
     async def callback(self, interaction: discord.Interaction):
@@ -35,10 +36,13 @@ class EstadioSelect(discord.ui.Select):
             view = PlantillaPaginator(self.club_id, interaction.user.id)
             await interaction.response.edit_message(content="Aquí tienes tu plantilla:", embed=view.get_embed(),
                                                     view=view)
-
         elif self.values[0] == "rename":
             from views.modals import RenombrarEstadioModal
             await interaction.response.send_modal(RenombrarEstadioModal(self.club_id))
+
+        # elif self.values[0].startswith("ficha_"):
+        #     numero = int(self.values[0].split("_")[1])
+        #     await mostrar_ficha_jugador(interaction, self.club_id, numero)
 
 
 class EstadioView(discord.ui.View):

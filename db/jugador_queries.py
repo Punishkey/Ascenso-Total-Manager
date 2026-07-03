@@ -134,3 +134,15 @@ def obtener_jugador_aleatorio(club_id):
     except Exception as e:
         print(f"Error al obtener jugador aleatorio: {e}")
         return "El equipo"
+
+
+def obtener_lista_jugadores(club_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT nombre, numero FROM jugadores WHERE club_id = ? ORDER BY numero ASC", (club_id,))
+    resultados = cursor.fetchall()
+    conn.close()
+
+    # Convertimos a una lista de diccionarios para que el Select sea fácil de iterar
+    return [{"nombre": fila[0], "numero": fila[1]} for fila in resultados]
