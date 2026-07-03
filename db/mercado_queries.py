@@ -79,3 +79,11 @@ def retirar_jugador_mercado(fichaje_id):
     cursor.execute("DELETE FROM fichajes WHERE id = ?", (fichaje_id,))
     conn.commit()
     conn.close()
+
+def obtener_club_vendedor_id(fichaje_id):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT club_vendedor_id FROM fichajes WHERE id = ?", (fichaje_id,))
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] if result else None

@@ -47,13 +47,13 @@ class MercadoView(discord.ui.View):
             print(f"❌ ERROR CRÍTICO en get_embed: {e}")
             return discord.Embed(title="Error", description=f"Error en datos: {e}", color=discord.Color.red())
 
-    @discord.ui.button(label="◀️", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="◀️", style=discord.ButtonStyle.primary, row=0)
     async def prev(self, interaction: discord.Interaction, button: discord.ui.Button):
         if self.current_page > 0:
             self.current_page -= 1
             await interaction.response.edit_message(embed=self.get_embed(), view=self)
 
-    @discord.ui.button(label="Comprar", style=discord.ButtonStyle.green)
+    @discord.ui.button(label="Comprar", style=discord.ButtonStyle.green, row=1)
     async def comprar(self, interaction: discord.Interaction, _button: discord.ui.Button):
         from db.club_queries import obtener_club_id_por_usuario
 
@@ -81,8 +81,34 @@ class MercadoView(discord.ui.View):
         else:
             await interaction.response.send_message(f"❌ {mensaje}", ephemeral=True)
 
-    @discord.ui.button(label="▶️", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="▶️", style=discord.ButtonStyle.primary, row=0)
     async def next(self, interaction: discord.Interaction, button: discord.ui.Button):
         if self.current_page < len(self.jugadores) - 1:
             self.current_page += 1
             await interaction.response.edit_message(embed=self.get_embed(), view=self)
+
+    @discord.ui.button(label="Retirar Venta", style=discord.ButtonStyle.danger)
+    async def retirar(self, interaction: discord.Interaction, button: discord.ui.Button):
+        from db.club_queries import obtener_club_id_por_usuario
+        from db.mercado_queries import obtener_club_vendedor_id, retirar_jugador_mercado, obtener_jugadores_en_mercado
+
+        # 1. Identificar al usuario
+        user_club_id = obtener_club_id_por_usuario(interaction.user.id)
+        fichaje_id = self.jugadores[self.current_page][0]
+
+        # 2. Seguridad: ¿Es el dueño?
+        if user_club_id != obtener_club_vendedor_id(fichaje_id):
+            await interaction.response.send_message("❌ Solo puedes retirar tus propias ventas.", ephemeral=True)
+            return
+
+        # 3. Retirar usando TU función
+        retirar_jugador_mercado(fichaje_id)
+
+        # 4. Actualizar estado
+        self.jugadores = obtener_jugadores_en_mercado()
+        self.current_page = 0
+
+        if not self.jugadores:
+            await interaction.response.edit_message(content="🛒 Mercado vacío.", embed=None, view=None)
+        else:
+            await interaction.response.edit_message(content="✅ Venta retirada.", embed=self.get_embed(), view=self)
