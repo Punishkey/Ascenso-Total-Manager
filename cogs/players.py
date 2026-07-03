@@ -51,9 +51,9 @@ class Players(commands.Cog):
         embed.add_field(name="👥 Capacidad", value=f"{capacidad} asientos", inline=True)
 
         historial_str = (
-            f"✅ Victorias: {stats.get(1, 0)}\n"
-            f"🤝 Empates: {stats.get(0, 0)}\n"
-            f"❌ Derrotas: {stats.get(-1, 0)}\n"
+            f"✅ Victorias: {stats.get('victorias', 0)}\n"
+            f"🤝 Empates: {stats.get('empates', 0)}\n"
+            f"❌ Derrotas: {stats.get('derrotas', 0)}\n"
             f"📊 Total: {stats.get('total', 0)}"
         )
         embed.add_field(name="🏆 Historial de Partidos", value=historial_str, inline=False)

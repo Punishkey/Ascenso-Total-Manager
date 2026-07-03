@@ -27,7 +27,7 @@ def init_db():
                       (id INTEGER PRIMARY KEY, abreviatura TEXT, nombre_completo TEXT)''')
     # Crear tabla historial de partidos
     cursor.execute('''CREATE TABLE IF NOT EXISTS historial_partidos
-                      (id INTEGER PRIMARY KEY AUTOINCREMENT, club_id INTEGER, rival_id INTEGER, goles_propios INTEGER,goles_rival INTEGER, es_victoria BOOLEAN, fecha DATETIME, resultado INTEGER DEFAULT 0)''')
+                      (id INTEGER PRIMARY KEY AUTOINCREMENT, club_id INTEGER, rival_id INTEGER, goles_propios INTEGER,goles_rival INTEGER, es_victoria INTEGER, fecha DATETIME, resultado INTEGER DEFAULT 0)''')
 
 
     # Comprobar si está vacía antes de insertar
