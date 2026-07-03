@@ -99,3 +99,38 @@ def obtener_jugador_por_numero(club_id, numero):
     jugador = cursor.fetchone()
     conn.close()
     return jugador
+
+
+def obtener_media_titular(club_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Calculamos la media de cada jugador (promedio de atributos)
+    # y luego hacemos el promedio de los 11 mejores
+    cursor.execute('''
+                   SELECT AVG(media)
+                   FROM (SELECT (velocidad + resistencia + anticipacion + 
+                                 serenidad + trabajo_equipo + precision_pases + 
+                                 control_balon + profesionalidad + 
+                                 potencial) / 9.0 as media
+                         FROM jugadores
+                         WHERE club_id = ?
+                         ORDER BY media DESC
+                         LIMIT 11)
+                   ''', (club_id,))
+
+    resultado = cursor.fetchone()[0]
+    conn.close()
+    return round(resultado, 2) if resultado else 0
+
+def obtener_jugador_aleatorio(club_id):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        # Usamos ORDER BY RANDOM() para obtener un registro al azar de forma eficiente
+        cursor.execute("SELECT nombre FROM jugadores WHERE club_id = ? ORDER BY RANDOM() LIMIT 1", (club_id,))
+        resultado = cursor.fetchone()
+        conn.close()
+        return resultado[0] if resultado else "Un jugador desconocido"
+    except Exception as e:
+        print(f"Error al obtener jugador aleatorio: {e}")
+        return "El equipo"

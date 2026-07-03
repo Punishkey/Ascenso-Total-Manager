@@ -48,7 +48,7 @@ class Players(commands.Cog):
         embed.add_field(name="👥 Capacidad", value=f"{capacidad} asientos", inline=True)
 
         # Se envía con la view correctamente
-        await interaction.response.send_message(embed=embed, view=EstadioView(club_id))
+        await interaction.response.send_message(embed=embed, view=EstadioView(club_id), ephemeral=True)
 
     @app_commands.command(name="plantilla", description="Ver los jugadores de tu equipo")
     async def plantilla(self, interaction: discord.Interaction):

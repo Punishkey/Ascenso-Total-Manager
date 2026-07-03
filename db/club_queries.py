@@ -47,6 +47,14 @@ def ya_tiene_club(user_id):
     conn.close()
     return resultado is not None
 
+def obtener_nombre_club(club_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT nombre FROM clubes WHERE id = ?", (club_id,))
+    resultado = cursor.fetchone()
+    conn.close()
+    return resultado[0] if resultado else "Desconocido"
+
 
 def obtener_club_id_por_usuario(user_id):
     conn = get_connection()
@@ -112,3 +120,12 @@ def obtener_info_club_y_estadio_por_club_id(club_id):
     resultado = cursor.fetchone()
     conn.close()
     return resultado
+
+def obtener_rival_ia(usuario_club_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Filtramos por id
+    cursor.execute("SELECT id, nombre FROM clubes WHERE id != ? ORDER BY RANDOM() LIMIT 1", (usuario_club_id,))
+    rival = cursor.fetchone()
+    conn.close()
+    return rival
