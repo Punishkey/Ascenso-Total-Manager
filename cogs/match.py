@@ -19,8 +19,8 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
     posesion_b = 0
 
     embed = discord.Embed(title=f"⚽ {nombre_a} vs {nombre_b}", color=discord.Color.green())
-    embed.add_field(name=nombre_a, value=f"Media: {media_a}\nGoles: 0", inline=True)
-    embed.add_field(name=nombre_b, value=f"Media: {media_b}\nGoles: 0", inline=True)
+    embed.add_field(name=nombre_a, value=f"Media: {media_a:.1f}\nGoles: 0", inline=True)
+    embed.add_field(name=nombre_b, value=f"Media: {media_b:.1f}\nGoles: 0", inline=True)
 
     msg = await interaction.followup.send(embed=embed)
 
@@ -59,10 +59,14 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
             es_roja = random.random() < 0.2
             tipo_tarjeta = "🟥" if es_roja else "🟨"
             nombre_tarjeta = "Roja" if es_roja else "Amarilla"
+
+            # Construcción dinámica del mensaje de tarjeta
+            texto_tarjeta = f"{tipo_tarjeta} **{nombre_tarjeta}**"
+            texto = f"{texto_tarjeta}: {texto}"
+
             tarjetas_jugadores.append(f"{tipo_tarjeta} {nombre_tarjeta} | Min. {minuto}: {jugador} ({club_nombre})")
 
             if es_roja:
-                texto = f"¡TARJETA ROJA! {jugador} es expulsado y el equipo {club_nombre} se debilita."
                 if protagonista_a:
                     media_a -= 5
                 else:
@@ -83,7 +87,7 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
 
         await msg.edit(embed=embed)
 
-    # Registro en BD (Nota: gano ya no se pasa, la función lo calcula internamente)
+    # Registro en BD
     registrar_resultado_partido(club_a_id, club_b_id, goles_a, goles_b)
 
     # --- Resumen Final ---
