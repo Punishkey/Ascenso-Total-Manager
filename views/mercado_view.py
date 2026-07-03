@@ -54,20 +54,32 @@ class MercadoView(discord.ui.View):
             await interaction.response.edit_message(embed=self.get_embed(), view=self)
 
     @discord.ui.button(label="Comprar", style=discord.ButtonStyle.green)
-    async def comprar(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def comprar(self, interaction: discord.Interaction, _button: discord.ui.Button):
         from db.club_queries import obtener_club_id_por_usuario
 
         comprador_club_id = obtener_club_id_por_usuario(interaction.user.id)
-        fichaje_id = self.jugadores[self.current_page][0]
+        # Validación extra: si no tiene club
+        if not comprador_club_id:
+            await interaction.response.send_message("❌ No tienes un club registrado.", ephemeral=True)
+            return
 
+        fichaje_id = self.jugadores[self.current_page][0]
         exito, mensaje = ejecutar_compra(fichaje_id, comprador_club_id)
 
         if exito:
+            # Recargamos mercado
             self.jugadores = obtener_jugadores_en_mercado()
             self.current_page = 0
-            await interaction.response.edit_message(content="✅ ¡Jugador fichado!", embed=self.get_embed(), view=self)
+
+            # Si el mercado se quedó vacío, editamos para avisar
+            if not self.jugadores:
+                await interaction.response.edit_message(content="🛒 El mercado se ha quedado vacío.", embed=None,
+                                                        view=None)
+            else:
+                await interaction.response.edit_message(content="✅ ¡Jugador fichado!", embed=self.get_embed(),
+                                                        view=self)
         else:
-            await interaction.followup.send(f"❌ {mensaje}", ephemeral=True)
+            await interaction.response.send_message(f"❌ {mensaje}", ephemeral=True)
 
     @discord.ui.button(label="▶️", style=discord.ButtonStyle.primary)
     async def next(self, interaction: discord.Interaction, button: discord.ui.Button):

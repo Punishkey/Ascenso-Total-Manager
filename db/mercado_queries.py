@@ -16,7 +16,7 @@ def publicar_jugador(jugador_id, club_vendedor_id, precio):
     """, (jugador_id, club_vendedor_id, precio))
     conn.commit()
     conn.close()
-    return None
+    return True
 
 
 def obtener_jugadores_en_mercado():
