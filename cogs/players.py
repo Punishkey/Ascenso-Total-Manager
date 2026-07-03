@@ -74,7 +74,7 @@ class Players(commands.Cog):
             return
 
         # Usamos directamente el paginador
-        view = PlantillaPaginator(club_id)
+        view = PlantillaPaginator(club_id, interaction.user.id)
 
         # Verificamos si hay jugadores para mostrar
         if not view.jugadores:
