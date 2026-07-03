@@ -25,6 +25,10 @@ def init_db():
     # Crear tabla de posiciones
     cursor.execute('''CREATE TABLE IF NOT EXISTS posiciones
                       (id INTEGER PRIMARY KEY, abreviatura TEXT, nombre_completo TEXT)''')
+    # Crear tabla historial de partidos
+    cursor.execute('''CREATE TABLE IF NOT EXISTS historial_partidos
+                      (id INTEGER PRIMARY KEY AUTOINCREMENT, club_id INTEGER, rival_id INTEGER, goles_propios INTEGER,goles_rival INTEGER, es_victoria BOOLEAN, fecha DATETIME)''')
+
 
     # Comprobar si está vacía antes de insertar
     cursor.execute("SELECT count(*) FROM posiciones")

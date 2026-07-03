@@ -6,13 +6,13 @@ from discord.ext import commands
 from config import EVENTOS_NARRATIVA
 from db.club_queries import obtener_nombre_club, obtener_rival_ia, obtener_club_id_por_usuario
 from db.jugador_queries import obtener_media_titular, obtener_jugador_aleatorio
+from db.transaction_queries import registrar_resultado_partido
 
 
 async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b):
     media_a = obtener_media_titular(club_a_id)
     media_b = obtener_media_titular(club_b_id)
 
-    # Variables para el resumen final (Diccionario para almacenar jugador y su equipo)
     historial_jugadores = {}
     tarjetas_jugadores = []
     posesion_a = 0
@@ -31,41 +31,43 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
                    50, 55, 60, 65, 70, 75, 80, 85, 90]:
         await asyncio.sleep(5)
 
-        # Selección de evento (Pesos ajustados para 18 eventos)
         tipo_evento = random.choices(
             list(EVENTOS_NARRATIVA.keys()),
             weights=[0.03, 0.12, 0.15, 0.10, 0.60]
         )[0]
 
-        # Determinar quién protagoniza el evento basado en medias
         prob_a = media_a / (media_a + media_b)
         protagonista_a = random.random() < prob_a
 
         club_id = club_a_id if protagonista_a else club_b_id
         club_nombre = nombre_a if protagonista_a else nombre_b
 
-        # Registrar posesión
         if protagonista_a:
             posesion_a += 1
         else:
             posesion_b += 1
 
-        # Obtener datos
         jugador = obtener_jugador_aleatorio(club_id)
         frase = random.choice(EVENTOS_NARRATIVA[tipo_evento])
         texto = frase.format(jugador=jugador, equipo=club_nombre)
 
-        # Registrar estadísticas incluyendo el equipo
         if jugador not in historial_jugadores:
             historial_jugadores[jugador] = {"equipo": club_nombre, "total": 0}
         historial_jugadores[jugador]["total"] += 1
 
         if tipo_evento == "tarjeta":
-            # Elegir aleatoriamente entre amarilla o roja
-            tipo_tarjeta = "🟨" if random.random() > 0.2 else "🟥"
-            tarjetas_jugadores.append(f"{tipo_tarjeta} Min. {minuto}: {jugador} ({club_nombre})")
+            es_roja = random.random() < 0.2
+            tipo_tarjeta = "🟥" if es_roja else "🟨"
+            nombre_tarjeta = "Roja" if es_roja else "Amarilla"
+            tarjetas_jugadores.append(f"{tipo_tarjeta} {nombre_tarjeta} | Min. {minuto}: {jugador} ({club_nombre})")
 
-        # Cálculo de éxito si es GOL
+            if es_roja:
+                texto = f"¡TARJETA ROJA! {jugador} es expulsado y el equipo {club_nombre} se debilita."
+                if protagonista_a:
+                    media_a -= 5
+                else:
+                    media_b -= 5
+
         if tipo_evento == "gol":
             if random.random() < (media_a / (media_a + media_b) if protagonista_a else media_b / (media_a + media_b)):
                 if protagonista_a:
@@ -75,22 +77,22 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
             else:
                 texto = f"¡Gran ocasión de {jugador} del equipo {club_nombre}, pero el portero lo evita!"
 
-        # Actualización dinámica
         embed.description = f"**Minuto {minuto}'**: {texto}"
-        embed.set_field_at(0, name=nombre_a, value=f"Media: {media_a}\nGoles: {goles_a}", inline=True)
-        embed.set_field_at(1, name=nombre_b, value=f"Media: {media_b}\nGoles: {goles_b}", inline=True)
+        embed.set_field_at(0, name=nombre_a, value=f"Media: {media_a:.1f}\nGoles: {goles_a}", inline=True)
+        embed.set_field_at(1, name=nombre_b, value=f"Media: {media_b:.1f}\nGoles: {goles_b}", inline=True)
 
         await msg.edit(embed=embed)
+
+    # Registro en BD
+    gano = goles_a > goles_b
+    registrar_resultado_partido(club_a_id, club_b_id, goles_a, goles_b, gano)
 
     # --- Resumen Final ---
     total_eventos = posesion_a + posesion_b
     porcentaje_a = int((posesion_a / total_eventos) * 100)
     porcentaje_b = 100 - porcentaje_a
-
-    # Crear barra visual (total de 10 bloques)
     bloques_a = int(porcentaje_a / 10)
-    bloques_b = 10 - bloques_a
-    barra_posesion = ("█" * bloques_a) + ("░" * bloques_b)
+    barra_posesion = ("█" * bloques_a) + ("░" * (10 - bloques_a))
 
     jugador_estrella = max(historial_jugadores, key=lambda x: historial_jugadores[x]["total"])
     datos_estrella = historial_jugadores[jugador_estrella]
@@ -98,7 +100,8 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
     resumen_embed = discord.Embed(title="📊 Resumen del Partido", color=discord.Color.green())
     resumen_embed.add_field(name="Resultado Final", value=f"**{nombre_a} {goles_a} - {goles_b} {nombre_b}**",
                             inline=False)
-    resumen_embed.add_field(name="Posesión del balón", value=f"{nombre_a}: {porcentaje_a}% | {nombre_b}: {porcentaje_b}%\n`{barra_posesion}`",
+    resumen_embed.add_field(name="Posesión del balón",
+                            value=f"{nombre_a}: {porcentaje_a}% | {nombre_b}: {porcentaje_b}%\n`{barra_posesion}`",
                             inline=False)
     resumen_embed.add_field(name="Jugador Destacado",
                             value=f"⭐ {jugador_estrella} ({datos_estrella['equipo']}) con {datos_estrella['total']} intervenciones",
@@ -115,14 +118,19 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
 class MatchCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.jugadores_en_partido = set()
 
     @app_commands.command(name="partido", description="Juega un partido amistoso contra un club de la IA")
     async def partido(self, interaction: discord.Interaction):
-        club_usuario_id = obtener_club_id_por_usuario(interaction.user.id)
-
-        if not club_usuario_id:
-            await interaction.response.send_message("❌ Primero debes crear un club usando `/fundar`.",
+        user_id = interaction.user.id
+        if user_id in self.jugadores_en_partido:
+            await interaction.response.send_message("❌ ¡Ya tienes un partido en curso! Espera a que termine.",
                                                     ephemeral=True)
+            return
+
+        club_usuario_id = obtener_club_id_por_usuario(interaction.user.id)
+        if not club_usuario_id:
+            await interaction.response.send_message("❌ Primero debes crear un club usando `/fundar`.", ephemeral=True)
             return
 
         rival_data = obtener_rival_ia(club_usuario_id)
@@ -133,8 +141,13 @@ class MatchCog(commands.Cog):
         rival_id, rival_nombre = rival_data
         club_usuario_nombre = obtener_nombre_club(club_usuario_id)
 
+        self.jugadores_en_partido.add(user_id)
         await interaction.response.defer()
-        await simular_partido(interaction, club_usuario_id, club_usuario_nombre, rival_id, rival_nombre)
+
+        try:
+            await simular_partido(interaction, club_usuario_id, club_usuario_nombre, rival_id, rival_nombre)
+        finally:
+            self.jugadores_en_partido.remove(user_id)
 
 
 async def setup(bot):

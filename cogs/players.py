@@ -68,7 +68,7 @@ class Players(commands.Cog):
             await interaction.response.send_message("Tu plantilla está vacía.", ephemeral=True)
             return
 
-        await interaction.response.send_message(embed=view.get_embed(), view=view)
+        await interaction.response.send_message(embed=view.get_embed(), view=view, ephemeral=True)
 
     @app_commands.command(name="ficha", description="Ver la ficha técnica detallada de un jugador")
     @app_commands.describe(numero="El número de dorsal del jugador")
