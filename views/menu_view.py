@@ -1,4 +1,22 @@
 import discord
+from db.club_queries import crear_club, ya_tiene_club
+
+
+class NombreClubModal(discord.ui.Modal, title="Fundar tu Club"):
+    nombre = discord.ui.TextInput(label="Nombre del equipo", placeholder="Ej: Real Madrid FC", min_length=3,
+                                  max_length=50)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        # Validar si ya tiene club
+        if ya_tiene_club(interaction.user.id):
+            await interaction.response.send_message("❌ ¡Ya tienes un club registrado!", ephemeral=True)
+            return
+
+        nombre_club = self.nombre.value
+        club_id = crear_club(interaction.user.id, nombre_club)
+
+        await interaction.response.send_message(f"✅ ¡Club **{nombre_club}** fundado correctamente! (ID: {club_id})",
+                                                ephemeral=True)
 
 
 class ManualSelect(discord.ui.Select):
@@ -11,7 +29,7 @@ class ManualSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         if self.values[0] == "fundar":
-            await interaction.response.send_message("Redirigiendo al proceso de fundación...", ephemeral=True)
+            await interaction.response.send_modal(NombreClubModal())
 
 
 class ManualView(discord.ui.View):
