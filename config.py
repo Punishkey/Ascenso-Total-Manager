@@ -13,6 +13,11 @@ HABILIDAD_MIN = 50
 HABILIDAD_MAX = 85
 
 # ENTRENAMIENTO
+
+# --- Configuración de Desarrollo de Jugadores ---
+EDAD_JOVEN = 24           # Edad hasta la que suben sin penalizaciones
+EDAD_DECLIVE = 32         # Edad a partir de la cual empiezan a bajar atributos físicos
+POTENCIAL_FACTOR = 10     # Multiplicador del potencial para definir el techo (pot 8 * 10 = 80)
 COSTE_ENTRENAMIENTO = 500
 
 

@@ -1,3 +1,4 @@
+from config import POTENCIAL_FACTOR, EDAD_DECLIVE
 from db.database import get_connection
 
 
@@ -156,3 +157,30 @@ def entrenar_atributo(jugador_id, atributo, cantidad):
     cursor.execute(query, (cantidad, jugador_id))
     conn.commit()
     conn.close()
+
+
+def puede_mejorar(jugador, atributo):
+    # Mapeo de índices de atributos en la tupla jugador
+    mapa_atributos = {
+        "velocidad": 3, "resistencia": 4, "anticipacion": 5,
+        "serenidad": 6, "trabajo_equipo": 7, "precision_pases": 8,
+        "control_balon": 9, "profesionalidad": 10
+    }
+
+    idx = mapa_atributos.get(atributo)
+    if idx is None: return False, "Atributo no reconocido."
+
+    edad = jugador[2]
+    valor_actual = jugador[idx]
+    potencial = jugador[11]
+    techo = potencial * POTENCIAL_FACTOR
+
+    # Validación de Techo
+    if valor_actual >= techo:
+        return False, f"El jugador ha llegado a su límite de potencial ({techo}) en {atributo}."
+
+    #  Validación de Edad (Lógica de declive)
+    if edad >= EDAD_DECLIVE:
+        return False, "El jugador es demasiado veterano y ha dejado de progresar."
+
+    return True, "Progreso permitido."

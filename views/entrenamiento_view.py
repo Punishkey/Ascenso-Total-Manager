@@ -1,7 +1,7 @@
 import discord
 
 from config import COSTE_ENTRENAMIENTO
-from db.jugador_queries import obtener_lista_jugadores, entrenar_atributo, obtener_jugador_por_numero
+from db.jugador_queries import obtener_lista_jugadores, entrenar_atributo, obtener_jugador_por_numero, puede_mejorar
 from db.club_queries import obtener_club_id_por_usuario, obtener_presupuesto, restar_dinero
 
 
@@ -36,7 +36,7 @@ class TipoEntrenamientoSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         self.parent_view.tipo_seleccionado = self.values[0]
-        await interaction.response.send_message(f"Seleccionado: {self.values[0]}", ephemeral=True)
+        await interaction.response.send_message(f"Seleccionado: {self.values[0].replace('_', ' ')}", ephemeral=True)
 
 
 class JugadorEntrenamientoSelect(discord.ui.Select):
@@ -56,45 +56,50 @@ class BotonEntrenar(discord.ui.Button):
     def __init__(self, parent_view):
         self.parent_view = parent_view
         self.procesando = False
-        super().__init__(label=F"¡Entrenar ahora! ({COSTE_ENTRENAMIENTO} monedas)", style=discord.ButtonStyle.green, row=2)
+        super().__init__(label=f"¡Entrenar ahora! ({COSTE_ENTRENAMIENTO} monedas)", style=discord.ButtonStyle.green, row=2)
 
     async def callback(self, interaction: discord.Interaction):
         # Evitar doble clic
         if self.procesando:
             return
 
+        # Validación inicial
         if not self.parent_view.tipo_seleccionado or not self.parent_view.dorsal_seleccionado:
             await interaction.response.send_message("❌ Selecciona tipo y jugador primero.", ephemeral=True)
             return
 
-        self.procesando = True  # Bloqueamos el botón
+        self.procesando = True
 
         # Verificar presupuesto
-        coste = COSTE_ENTRENAMIENTO
-        presupuesto_actual = obtener_presupuesto(self.parent_view.club_id)
-
-        if presupuesto_actual < coste:
-            await interaction.response.send_message(f"❌ No tienes suficientes monedas. Necesitas {coste}.",
+        if obtener_presupuesto(self.parent_view.club_id) < COSTE_ENTRENAMIENTO:
+            await interaction.response.send_message(f"❌ No tienes suficientes monedas. Necesitas {COSTE_ENTRENAMIENTO}.",
                                                     ephemeral=True)
-            self.procesando = False  # Desbloqueamos si falla
+            self.procesando = False
             return
 
-        # Obtener datos
+        # Obtener datos y VALIDAR desarrollo (Regla de Potencial/Edad)
         jugador_data = obtener_jugador_por_numero(self.parent_view.club_id, self.parent_view.dorsal_seleccionado)
         if not jugador_data:
             await interaction.response.send_message("❌ Error: No se encontró el jugador.", ephemeral=True)
             self.procesando = False
             return
 
-        jugador_id = jugador_data[0]
+        # Comprobación de límites de crecimiento
+        es_posible, mensaje = puede_mejorar(jugador_data, self.parent_view.tipo_seleccionado)
+        if not es_posible:
+            await interaction.response.send_message(f"❌ {mensaje}", ephemeral=True)
+            self.procesando = False
+            return
 
-        # Restar monedas y aplicar mejora UNA SOLA VEZ
-        restar_dinero(self.parent_view.club_id, coste)
+        # Ejecutar mejora
+        jugador_id = jugador_data[0]
+        restar_dinero(self.parent_view.club_id, COSTE_ENTRENAMIENTO)
         entrenar_atributo(jugador_id, self.parent_view.tipo_seleccionado, 1)
 
         await interaction.response.send_message(
-            f"✅ ¡Entrenamiento completado! El jugador ha mejorado su atributo {self.parent_view.tipo_seleccionado}.",
+            f"✅ ¡Entrenamiento completado! El jugador ha mejorado su atributo {self.parent_view.tipo_seleccionado.replace('_', ' ')}.",
             ephemeral=True)
+        self.procesando = False
 
 
 class BotonVolverEstadio(discord.ui.Button):
@@ -103,10 +108,8 @@ class BotonVolverEstadio(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         from views.estadio_view import EstadioView
-
         club_id = obtener_club_id_por_usuario(interaction.user.id)
         view = EstadioView(club_id, interaction.user.id)
-
         await interaction.response.edit_message(
             content=None,
             embed=view.actualizar_embed_inicial(),
