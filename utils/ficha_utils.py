@@ -11,7 +11,7 @@ async def mostrar_ficha_jugador(interaction: discord.Interaction, club_id: int, 
                                                     ephemeral=True)
         return
 
-    (nombre, edad, vel, res, anti, sere, trab, pase, ctrl, prof, pot, valor, estrella) = jugador
+    (_id, nombre, edad, vel, res, anti, sere, trab, pase, ctrl, prof, pot, valor, estrella) = jugador
 
     suma_total = vel + res + anti + sere + trab + pase + ctrl + prof + pot
     media = round(suma_total / 9)

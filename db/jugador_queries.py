@@ -149,10 +149,10 @@ def obtener_lista_jugadores(club_id):
     return [{"nombre": fila[0], "numero": fila[1]} for fila in resultados]
 
 def entrenar_atributo(jugador_id, atributo, cantidad):
-    """Suma cantidad al atributo del jugador especificado."""
     conn = get_connection()
     cursor = conn.cursor()
-    # Usamos f-string para el atributo
-    cursor.execute(f"UPDATE jugadores SET {atributo} = {atributo} + ? WHERE id = ?", (cantidad, jugador_id))
+    # Usamos un formato seguro para evitar SQL Injection
+    query = f"UPDATE jugadores SET {atributo} = {atributo} + ? WHERE id = ?"
+    cursor.execute(query, (cantidad, jugador_id))
     conn.commit()
     conn.close()

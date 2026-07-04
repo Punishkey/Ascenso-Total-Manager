@@ -129,3 +129,20 @@ def obtener_rival_ia(usuario_club_id):
     rival = cursor.fetchone()
     conn.close()
     return rival
+
+def obtener_presupuesto(club_id):
+    """Devuelve el presupuesto actual del club."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT presupuesto FROM clubes WHERE id = ?', (club_id,))
+    resultado = cursor.fetchone()
+    conn.close()
+    return resultado[0] if resultado else 0
+
+def restar_dinero(club_id, cantidad):
+    """Resta una cantidad al presupuesto del club."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE clubes SET presupuesto = presupuesto - ? WHERE id = ?', (cantidad, club_id))
+    conn.commit()
+    conn.close()
