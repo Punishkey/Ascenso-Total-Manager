@@ -65,7 +65,7 @@ class PlantillaPaginator(discord.ui.View):
     async def volver_estadio(self, interaction: discord.Interaction, _button: discord.ui.Button):
         from views.estadio_view import EstadioView
         view = EstadioView(self.club_id, self.user_id)
-        await interaction.response.edit_message(content=None, embed=view.actualizar_embed_inicial(), view=view)
+        await interaction.response.edit_message(content=None, embed=view.actualizar_embed_inicial(self.club_id, self.user_id), view=view)
 
     @discord.ui.button(label="⬅️ Anterior", style=discord.ButtonStyle.secondary, row=0)
     async def anterior(self, interaction: discord.Interaction, _button: discord.ui.Button):

@@ -1,6 +1,5 @@
 import discord
 from db.estadio_queries import renombrar_estadio_db
-from views.embed_utils import crear_embed_base
 
 
 class RenombrarEstadioModal(discord.ui.Modal, title="Renombrar Estadio"):
@@ -23,10 +22,11 @@ class RenombrarEstadioModal(discord.ui.Modal, title="Renombrar Estadio"):
         if exito:
             from views.estadio_view import EstadioView
             view = EstadioView(self.club_id, interaction.user.id)
-            embed_actualizado = view.actualizar_embed_inicial()
+            embed = view.actualizar_embed_inicial(self.club_id, interaction.user.id)
+
             await interaction.response.edit_message(
                 content=None,
-                embed=embed_actualizado,
+                embed=embed,
                 view=view
             )
         else:

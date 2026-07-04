@@ -82,31 +82,42 @@ def mejorar_estadio_db(club_id):
     conn = get_connection()
     cursor = conn.cursor()
 
-    # 1. Verificar presupuesto y nivel actual
-    cursor.execute('SELECT presupuesto FROM clubes WHERE id = ?', (club_id,))
-    presupuesto = cursor.fetchone()[0]
+    try:
+        # Usamos transacciones para mayor seguridad
+        cursor.execute('BEGIN TRANSACTION')
 
-    cursor.execute('SELECT nivel FROM estadios WHERE club_id = ?', (club_id,))
-    nivel = cursor.fetchone()[0]
+        # Verificar datos (bloqueamos la fila para evitar condiciones de carrera)
+        cursor.execute('SELECT presupuesto FROM clubes WHERE id = ?', (club_id,))
+        presupuesto = cursor.fetchone()[0]
 
-    coste = nivel * COSTE_MEJORA_ESTADIO
+        cursor.execute('SELECT nivel FROM estadios WHERE club_id = ?', (club_id,))
+        nivel_actual = cursor.fetchone()[0]
 
-    if presupuesto >= coste:
-        # 2. Actualizar nivel, capacidad y restar dinero
-        cursor.execute('UPDATE clubes SET presupuesto = presupuesto - ? WHERE id = ?', (coste, club_id))
-        cursor.execute('''
-                       UPDATE estadios
-                       SET nivel     = nivel + 1,
-                           capacidad = capacidad + 2500
-                       WHERE club_id = ?
-                       ''', (club_id,))
-        conn.commit()
-        exito = True
-    else:
-        exito = False
+        coste = nivel_actual * COSTE_MEJORA_ESTADIO
 
-    conn.close()
-    return exito, coste
+        if presupuesto >= coste:
+            nuevo_nivel = nivel_actual + 1
+
+            # Actualizar
+            cursor.execute('UPDATE clubes SET presupuesto = presupuesto - ? WHERE id = ?', (coste, club_id))
+            cursor.execute('''
+                           UPDATE estadios
+                           SET nivel     = nivel + 1,
+                               capacidad = capacidad + 2500
+                           WHERE club_id = ?
+                           ''', (club_id,))
+
+            conn.commit()
+            return True, nuevo_nivel  # Devolvemos el nivel nuevo
+        else:
+            return False, nivel_actual
+
+    except Exception as e:
+        conn.rollback()  # Si algo falla, deshacemos todo
+        print(f"Error en mejora de estadio: {e}")
+        return False, None
+    finally:
+        conn.close()
 
 def obtener_info_club_y_estadio_por_club_id(club_id):
     conn = get_connection()

@@ -7,7 +7,7 @@ from db.club_queries import obtener_club_id_por_usuario, obtener_presupuesto, re
 
 class EntrenamientoView(discord.ui.View):
     def __init__(self, club_id, user_id):
-        super().__init__(timeout=60)
+        super().__init__(timeout=None)
         self.club_id = club_id
         self.user_id = user_id
         self.tipo_seleccionado = None
@@ -16,7 +16,7 @@ class EntrenamientoView(discord.ui.View):
         self.add_item(TipoEntrenamientoSelect(self))
         self.add_item(JugadorEntrenamientoSelect(club_id, self))
         self.add_item(BotonEntrenar(self))
-        self.add_item(BotonVolverEstadio())
+        self.add_item(BotonVolverEstadio(self.club_id, self.user_id))
 
 
 class TipoEntrenamientoSelect(discord.ui.Select):
@@ -103,15 +103,20 @@ class BotonEntrenar(discord.ui.Button):
 
 
 class BotonVolverEstadio(discord.ui.Button):
-    def __init__(self):
+    def __init__(self, club_id, user_id):
         super().__init__(label="Volver al Estadio", style=discord.ButtonStyle.secondary, row=2)
+        self.club_id = club_id
+        self.user_id = user_id
+
 
     async def callback(self, interaction: discord.Interaction):
         from views.estadio_view import EstadioView
-        club_id = obtener_club_id_por_usuario(interaction.user.id)
-        view = EstadioView(club_id, interaction.user.id)
+
+        view = EstadioView(self.club_id, self.user_id)
+        embed = view.actualizar_embed_inicial(self.club_id, self.user_id)
+
         await interaction.response.edit_message(
             content=None,
-            embed=view.actualizar_embed_inicial(),
+            embed=embed,
             view=view
         )

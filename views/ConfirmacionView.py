@@ -1,6 +1,5 @@
 import discord
 from db.club_queries import mejorar_estadio_db
-from views.embed_utils import crear_embed_base
 import views.estadio_view
 
 
@@ -12,26 +11,31 @@ class ConfirmacionMejoraView(discord.ui.View):
 
     @discord.ui.button(label="Aceptar", style=discord.ButtonStyle.green)
     async def aceptar(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        # Intentamos mejorar
-        exito, _ = mejorar_estadio_db(self.club_id)
+        exito, nuevo_nivel = mejorar_estadio_db(self.club_id)
 
         if exito:
+            # Crear la vista
             view = views.estadio_view.EstadioView(self.club_id, interaction.user.id)
+            embed = view.actualizar_embed_inicial(self.club_id, interaction.user.id)
 
             await interaction.response.edit_message(
-                embed=crear_embed_base(self.club_id),
+                content=f"✅ ¡Tu estadio ha sido mejorado al **Nivel {nuevo_nivel}**!",
+                embed=embed,
                 view=view
             )
         else:
-            # Si falla, avisamos pero no rompemos la interacción
             await interaction.response.send_message("❌ Error: No tienes saldo suficiente o hubo un problema.",
                                                     ephemeral=True)
 
     @discord.ui.button(label="Cancelar", style=discord.ButtonStyle.red)
     async def cancelar(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        # Crear la vista
         view = views.estadio_view.EstadioView(self.club_id, interaction.user.id)
 
+        embed = view.actualizar_embed_inicial(self.club_id, interaction.user.id)
+
         await interaction.response.edit_message(
-            embed=crear_embed_base(self.club_id),
+            content="Has cancelado la subida de nivel del estadio.",
+            embed=embed,
             view=view
         )

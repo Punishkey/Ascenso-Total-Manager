@@ -46,26 +46,27 @@ class Players(commands.Cog):
             return
 
         # Obtenemos info del estadio
-        info = estadio_queries.obtener_info_club_y_estadio(interaction.user.id)
-        stats = obtener_estadisticas_club(club_id)
-        nombre_club, presupuesto, nombre_estadio, nivel, capacidad = info
+        # info = estadio_queries.obtener_info_club_y_estadio(interaction.user.id)
+        # stats = obtener_estadisticas_club(club_id)
+        # nombre_club, presupuesto, nombre_estadio, nivel, capacidad = info
 
         # Creamos el Embed profesional
-        embed = crear_embed_base(f"🏟️ Información de {nombre_club}")
-        embed.add_field(name="💰 Presupuesto", value=f"{presupuesto} monedas", inline=False)
-        embed.add_field(name="📍 Nombre del Estadio", value=nombre_estadio, inline=True)
-        embed.add_field(name="⭐ Nivel", value=str(nivel), inline=True)
-        embed.add_field(name="👥 Capacidad", value=f"{capacidad} asientos", inline=True)
-
-        historial_str = (
-            f"✅ Victorias: {stats.get('victorias', 0)}\n"
-            f"🤝 Empates: {stats.get('empates', 0)}\n"
-            f"❌ Derrotas: {stats.get('derrotas', 0)}\n"
-            f"📊 Total: {stats.get('total', 0)}"
-        )
-        embed.add_field(name="🏆 Historial de Partidos", value=historial_str, inline=False)
+        # embed = crear_embed_base(f"🏟️ Información de {nombre_club}")
+        # embed.add_field(name="💰 Presupuesto", value=f"{presupuesto} monedas", inline=False)
+        # embed.add_field(name="📍 Nombre del Estadio", value=nombre_estadio, inline=True)
+        # embed.add_field(name="⭐ Nivel", value=str(nivel), inline=True)
+        # embed.add_field(name="👥 Capacidad", value=f"{capacidad} asientos", inline=True)
+        #
+        # historial_str = (
+        #     f"✅ Victorias: {stats.get('victorias', 0)}\n"
+        #     f"🤝 Empates: {stats.get('empates', 0)}\n"
+        #     f"❌ Derrotas: {stats.get('derrotas', 0)}\n"
+        #     f"📊 Total: {stats.get('total', 0)}"
+        # )
+        # embed.add_field(name="🏆 Historial de Partidos", value=historial_str, inline=False)
 
         view = EstadioView(club_id, interaction.user.id)
+        embed = view.actualizar_embed_inicial(club_id, interaction.user.id)
 
         # Se envía con la view correctamente
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
