@@ -22,10 +22,12 @@ class RenombrarEstadioModal(discord.ui.Modal, title="Renombrar Estadio"):
 
         if exito:
             from views.estadio_view import EstadioView
+            view = EstadioView(self.club_id, interaction.user.id)
+            embed_actualizado = view.actualizar_embed_inicial()
             await interaction.response.edit_message(
-                content="✅ ¡Estadio renombrado con éxito!",
-                embed=crear_embed_base(self.club_id),
-                view=EstadioView(self.club_id)
+                content=None,
+                embed=embed_actualizado,
+                view=view
             )
         else:
             await interaction.response.send_message("❌ Error al renombrar el estadio.", ephemeral=True)
