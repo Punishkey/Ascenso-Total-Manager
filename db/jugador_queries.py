@@ -22,6 +22,18 @@ def crear_jugador(club_id, nombre, numero, posicion_id, edad, vel, res, anti, se
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                    ''', (club_id, nombre, numero, posicion_id, edad, vel, res, anti, sere, trab, pase, ctrl, prof, pot, valor,
                          es_estrella))
+
+    nuevo_jugador_id = cursor.lastrowid
+
+    cursor.execute('''
+                   INSERT INTO historico_jugadores
+                   (jugador_id, nombre, numero, posicion_id, edad, velocidad_base, resistencia_base,
+                    anticipacion_base, serenidad_base, trabajo_equipo_base, precision_pases_base,
+                    control_balon_base, profesionalidad_base)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ''',
+                   (nuevo_jugador_id, nombre, numero, posicion_id, edad, vel, res, anti, sere, trab, pase, ctrl, prof))
+
     conn.commit()
     conn.close()
 
@@ -184,3 +196,29 @@ def puede_mejorar(jugador, atributo):
         return False, "El jugador es demasiado veterano y ha dejado de progresar."
 
     return True, "Progreso permitido."
+
+
+def obtener_jugador_con_historico(club_id, numero):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Hacemos un JOIN para traer todo en una sola tupla
+    cursor.execute('''
+                   SELECT j.*,
+                          h.velocidad_base,
+                          h.resistencia_base,
+                          h.anticipacion_base,
+                          h.serenidad_base,
+                          h.trabajo_equipo_base,
+                          h.precision_pases_base,
+                          h.control_balon_base,
+                          h.profesionalidad_base
+                   FROM jugadores j
+                            JOIN historico_jugadores h ON j.id = h.jugador_id
+                   WHERE j.club_id = ?
+                     AND j.numero = ?
+                   ''', (club_id, numero))
+
+    data = cursor.fetchone()
+    conn.close()
+    return data

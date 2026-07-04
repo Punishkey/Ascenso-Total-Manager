@@ -3,7 +3,7 @@ from db import jugador_queries
 
 
 async def mostrar_ficha_jugador(interaction: discord.Interaction, club_id: int, numero: int):
-    jugador = jugador_queries.obtener_jugador_por_numero(club_id, numero)
+    jugador = jugador_queries.obtener_jugador_con_historico(club_id, numero)
 
     if not jugador:
         if not interaction.response.is_done():
@@ -11,18 +11,35 @@ async def mostrar_ficha_jugador(interaction: discord.Interaction, club_id: int, 
                                                     ephemeral=True)
         return
 
-    (_id, nombre, edad, vel, res, anti, sere, trab, pase, ctrl, prof, pot, valor, estrella) = jugador
+    # Desempaquetado: (j.id, club_id, nombre, numero, pos, edad, vel, res, anti, sere, trab, pase, ctrl, prof, pot, val, est, vel_b, res_b, anti_b, sere_b, trab_b, pase_b, ctrl_b, prof_b)
+    # Índices (0-based):
+    # 2:nombre, 5:edad, 6:vel, 7:res, 8:anti, 9:sere, 10:trab, 11:pase, 12:ctrl, 13:prof, 14:pot, 15:valor, 16:estrella
+    # 17:vel_b, 18:res_b, 19:anti_b, 20:sere_b, 21:trab_b, 22:pase_b, 23:ctrl_b, 24:prof_b
 
-    suma_total = vel + res + anti + sere + trab + pase + ctrl + prof + pot
-    media = round(suma_total / 9)
+    nombre, edad = jugador[2], jugador[5]
+    vel, res, anti, sere, trab, pase, ctrl, prof = jugador[6:14]
+    pot, valor, estrella = jugador[14], jugador[15], jugador[16]
+
+    # Valores base para comparación
+    vel_b, res_b, anti_b, sere_b, trab_b, pase_b, ctrl_b, prof_b = jugador[17:25]
+
+    media = round(sum([vel, res, anti, sere, trab, pase, ctrl, prof, pot]) / 9)
 
     embed = discord.Embed(title=f"⚽ Ficha Técnica: {nombre} (#{numero})", color=discord.Color.blue())
     embed.add_field(name="Información", value=f"Edad: {edad}\nValor: {valor:,.0f} €", inline=False)
     embed.add_field(name="Calificación Global", value=f"⭐ {media}/100", inline=False)
-    embed.add_field(name="Atributos",
-                    value=f"🏃 Vel: {vel} | 🔋 Res: {res}\n👁️ Anti: {anti} | 🧘 Sere: {sere}\n🤝 Trab: {trab} | 🎯 Pase: {pase}\n⚽ Ctrl: {ctrl}",
-                    inline=False)
-    embed.add_field(name="Mentalidad", value=f"📈 Potencial: {pot} | 🧠 Prof: {prof}", inline=False)
+
+    # Atributos con flechas
+    attr_str = (
+        f"🏃 Vel: {vel} {obtener_icono_progreso(vel, vel_b)} | 🔋 Res: {res} {obtener_icono_progreso(res, res_b)}\n"
+        f"👁️ Anti: {anti} {obtener_icono_progreso(anti, anti_b)} | 🧘 Sere: {sere} {obtener_icono_progreso(sere, sere_b)}\n"
+        f"🤝 Trab: {trab} {obtener_icono_progreso(trab, trab_b)} | 🎯 Pase: {pase} {obtener_icono_progreso(pase, pase_b)}\n"
+        f"⚽ Ctrl: {ctrl} {obtener_icono_progreso(ctrl, ctrl_b)}"
+    )
+
+    embed.add_field(name="Atributos", value=attr_str, inline=False)
+    embed.add_field(name="Mentalidad",
+                    value=f"📈 Potencial: {pot} | 🧠 Prof: {prof} {obtener_icono_progreso(prof, prof_b)}", inline=False)
 
     if estrella:
         embed.set_footer(text="⭐ Jugador Estrella")
@@ -31,3 +48,10 @@ async def mostrar_ficha_jugador(interaction: discord.Interaction, club_id: int, 
         await interaction.followup.send(embed=embed, ephemeral=True)
     else:
         await interaction.response.send_message(embed=embed, ephemeral=True)
+
+def obtener_icono_progreso(actual, base):
+    if actual > base:
+        return "⬆️"
+    elif actual < base:
+        return "⬇️"
+    return "➖"
