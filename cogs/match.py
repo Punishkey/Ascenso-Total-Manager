@@ -14,6 +14,7 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
     media_b = obtener_media_titular(club_b_id)
 
     historial_jugadores = {}
+    estado_tarjetas = {}  # Inicializado fuera del bucle
     tarjetas_jugadores = []
     posesion_a = 0
     posesion_b = 0
@@ -48,38 +49,65 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
             posesion_b += 1
 
         jugador = obtener_jugador_aleatorio(club_id)
-        frase = random.choice(EVENTOS_NARRATIVA[tipo_evento])
-        texto = frase.format(jugador=jugador, equipo=club_nombre)
 
+        # Corrección: Incrementar historial siempre
         if jugador not in historial_jugadores:
             historial_jugadores[jugador] = {"equipo": club_nombre, "total": 0}
         historial_jugadores[jugador]["total"] += 1
 
+        texto = ""  # Inicializar variable de texto
+
         if tipo_evento == "tarjeta":
-            es_roja = random.random() < 0.2
-            tipo_tarjeta = "🟥" if es_roja else "🟨"
-            nombre_tarjeta = "Roja" if es_roja else "Amarilla"
+            # Inicializar jugador en estado_tarjetas
+            if jugador not in estado_tarjetas:
+                estado_tarjetas[jugador] = {"amarillas": 0, "expulsado": False}
 
-            # Construcción dinámica del mensaje de tarjeta
-            texto_tarjeta = f"{tipo_tarjeta} **{nombre_tarjeta}**"
-            texto = f"{texto_tarjeta}: {texto}"
+            # Si ya fue expulsado, ignoramos el evento
+            if estado_tarjetas[jugador]["expulsado"]:
+                continue
 
-            tarjetas_jugadores.append(f"{tipo_tarjeta} {nombre_tarjeta} | Min. {minuto}: {jugador} ({club_nombre})")
+            es_roja_directa = random.random() < 0.2
 
-            if es_roja:
+            if es_roja_directa:
+                estado_tarjetas[jugador]["expulsado"] = True
+                tipo_tarjeta = "🟥"
+                nombre_tarjeta = "Roja"
+            else:
+                estado_tarjetas[jugador]["amarillas"] += 1
+                if estado_tarjetas[jugador]["amarillas"] >= 2:
+                    estado_tarjetas[jugador]["expulsado"] = True
+                    tipo_tarjeta = "🟥"
+                    nombre_tarjeta = "Roja (por doble amarilla)"
+                else:
+                    tipo_tarjeta = "🟨"
+                    nombre_tarjeta = "Amarilla"
+
+            texto = f"{tipo_tarjeta} **{nombre_tarjeta}**: El árbitro amonesta a {jugador} del equipo {club_nombre}."
+
+            registro = f"{tipo_tarjeta} {nombre_tarjeta} | Min. {minuto}: {jugador} ({club_nombre})"
+            if registro not in tarjetas_jugadores:
+                tarjetas_jugadores.append(registro)
+
+            if estado_tarjetas[jugador]["expulsado"]:
                 if protagonista_a:
                     media_a -= 5
                 else:
                     media_b -= 5
 
-        if tipo_evento == "gol":
+        elif tipo_evento == "gol":
+            frase = random.choice(EVENTOS_NARRATIVA[tipo_evento])
             if random.random() < (media_a / (media_a + media_b) if protagonista_a else media_b / (media_a + media_b)):
+                texto = frase.format(jugador=jugador, equipo=club_nombre)
                 if protagonista_a:
                     goles_a += 1
                 else:
                     goles_b += 1
             else:
                 texto = f"¡Gran ocasión de {jugador} del equipo {club_nombre}, pero el portero lo evita!"
+        else:
+            # Eventos normales (falta, disputa, ocasion)
+            frase = random.choice(EVENTOS_NARRATIVA[tipo_evento])
+            texto = frase.format(jugador=jugador, equipo=club_nombre)
 
         embed.description = f"**Minuto {minuto}'**: {texto}"
         embed.set_field_at(0, name=nombre_a, value=f"Media: {media_a:.1f}\nGoles: {goles_a}", inline=True)
@@ -92,7 +120,7 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
 
     # --- Resumen Final ---
     total_eventos = posesion_a + posesion_b
-    porcentaje_a = int((posesion_a / total_eventos) * 100)
+    porcentaje_a = int((posesion_a / total_eventos) * 100) if total_eventos > 0 else 50
     porcentaje_b = 100 - porcentaje_a
     bloques_a = int(porcentaje_a / 10)
     barra_posesion = ("█" * bloques_a) + ("░" * (10 - bloques_a))

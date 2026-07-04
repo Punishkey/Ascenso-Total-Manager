@@ -32,8 +32,9 @@ EVENTOS_NARRATIVA = {
         "Dura entrada de {jugador} del equipo {equipo}. El árbitro advierte al equipo."
     ],
     "tarjeta": [
-        "¡Tarjeta amarilla para {jugador} del equipo {equipo} por juego peligroso!",
-        "El árbitro le muestra la tarjeta roja a {jugador} del equipo {equipo}. ¡Se queda con 10!",
+        "entrada peligrosa de {jugador} del equipo {equipo}.",
+        "discusión fuerte de {jugador} del equipo {equipo} con el árbitro.",
+        "{jugador} del equipo {equipo} corta un contraataque con falta."
     ],
     "disputa": [
         "El partido sigue muy disputado en el centro del campo.",
