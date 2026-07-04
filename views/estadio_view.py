@@ -1,6 +1,6 @@
 import discord
 from config import CAPACIDAD_POR_NIVEL, COSTE_MEJORA_ESTADIO
-from db.club_queries import obtener_info_estadio
+from db.club_queries import obtener_info_estadio, obtener_tiempo_restante_construccion, check_y_aplicar_mejora
 from db.estadio_queries import obtener_info_club_y_estadio
 from views.plantilla_view import PlantillaPaginator
 from views.ConfirmacionView import ConfirmacionMejoraView
@@ -25,6 +25,11 @@ class EstadioSelect(discord.ui.Select):
             info = obtener_info_estadio(self.club_id)
             nivel_actual, capacidad_actual = info[1], info[2]
             coste = nivel_actual * COSTE_MEJORA_ESTADIO
+
+            tiempo = obtener_tiempo_restante_construccion(self.club_id)
+            if tiempo and tiempo != "FINALIZADO":
+                await interaction.response.send_message("❌ Ya hay una obra en curso.", ephemeral=True)
+                return
 
             embed = discord.Embed(title="🏗️ Confirmar Mejora de Estadio", color=discord.Color.orange())
             embed.add_field(name="Estado Actual", value=f"Nivel {nivel_actual} | {capacidad_actual} asientos",
@@ -82,12 +87,22 @@ class EstadioView(discord.ui.View):
         info = obtener_info_club_y_estadio(user_id)
         stats = obtener_estadisticas_club(club_id)
         nombre_club, presupuesto, nombre_estadio, nivel, capacidad = info
+        tiempo_restante = obtener_tiempo_restante_construccion(club_id)
+        check_y_aplicar_mejora(club_id)
+        info = obtener_info_club_y_estadio(user_id)
+
 
         embed = discord.Embed(title=f"🏟️ Información de {nombre_club}", color=discord.Color.blue())
         embed.add_field(name="💰 Presupuesto", value=f"{presupuesto} Keycoins", inline=False)
         embed.add_field(name="📍 Nombre del Estadio", value=nombre_estadio, inline=True)
         embed.add_field(name="⭐ Nivel", value=str(nivel), inline=True)
         embed.add_field(name="👥 Capacidad", value=f"{capacidad} asientos", inline=True)
+        if tiempo_restante:
+            if tiempo_restante == "FINALIZADO":
+                embed.add_field(name="✅ Estado", value="Construcción finalizada. ¡Disfruta tus mejoras!", inline=False)
+            else:
+                embed.add_field(name="🏗️ En Construcción", value=f"Tiempo restante: **{tiempo_restante}**",
+                                inline=False)
 
         historial_str = (
             f"✅ Victorias: {stats.get('victorias', 0)}\n"

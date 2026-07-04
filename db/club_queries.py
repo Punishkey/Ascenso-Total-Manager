@@ -5,6 +5,7 @@ from utils.generator import (obtener_estructura_plantilla,
 from db.jugador_queries import insertar_jugador_en_cursor
 from config import (PRESUPUESTO_INICIAL, NIVEL_INICIAL, CAPACIDAD_INICIAL,
                     COSTE_MEJORA_ESTADIO)
+from datetime import datetime
 
 
 def crear_club(user_id, nombre_club):
@@ -157,3 +158,61 @@ def restar_dinero(club_id, cantidad):
     cursor.execute('UPDATE clubes SET presupuesto = presupuesto - ? WHERE id = ?', (cantidad, club_id))
     conn.commit()
     conn.close()
+
+
+from datetime import datetime
+
+
+def obtener_tiempo_restante_construccion(club_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT fecha_finalizacion FROM estadios WHERE club_id = ?', (club_id,))
+    resultado = cursor.fetchone()
+
+    if not resultado or resultado[0] is None:
+        conn.close()
+        return None
+
+    fecha_fin = datetime.fromisoformat(resultado[0])
+    ahora = datetime.now()
+
+    if ahora >= fecha_fin:
+        # Limpieza automática si ya pasó el tiempo
+        cursor.execute('UPDATE estadios SET fecha_finalizacion = NULL WHERE club_id = ?', (club_id,))
+        conn.commit()
+        conn.close()
+        return "FINALIZADO"
+
+    conn.close()
+    delta = fecha_fin - ahora
+    horas, rem = divmod(int(delta.total_seconds()), 3600)
+    minutos, _ = divmod(rem, 60)
+
+    return f"{horas}h {minutos}m"
+
+
+def check_y_aplicar_mejora(club_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Obtenemos fecha y nivel actual
+    cursor.execute('SELECT fecha_finalizacion, nivel FROM estadios WHERE club_id = ?', (club_id,))
+    res = cursor.fetchone()
+
+    if res and res[0]:
+        fecha_fin = datetime.fromisoformat(res[0])
+        # Si el tiempo ya pasó
+        if datetime.now() >= fecha_fin:
+            # Aplicamos la mejora: Nivel + 1, Capacidad + 2500, limpiamos fecha
+            cursor.execute('''
+                           UPDATE estadios
+                           SET nivel              = nivel + 1,
+                               capacidad          = capacidad + 2500,
+                               fecha_finalizacion = NULL
+                           WHERE club_id = ?
+                           ''', (club_id,))
+            conn.commit()
+            conn.close()
+            return True  # Retornamos True porque se acaba de aplicar una mejora
+
+    conn.close()
+    return False
