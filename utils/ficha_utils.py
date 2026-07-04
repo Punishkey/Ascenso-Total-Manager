@@ -1,5 +1,6 @@
 import discord
 from db import jugador_queries
+from views.modals import ConfigurarPrecioModal
 
 
 async def mostrar_ficha_jugador(interaction: discord.Interaction, club_id: int, numero: int):
@@ -11,6 +12,7 @@ async def mostrar_ficha_jugador(interaction: discord.Interaction, club_id: int, 
                                                     ephemeral=True)
         return
 
+    jugador_id = jugador[0]
     # Desempaquetado: (j.id, club_id, nombre, numero, pos, edad, vel, res, anti, sere, trab, pase, ctrl, prof, pot, val, est, vel_b, res_b, anti_b, sere_b, trab_b, pase_b, ctrl_b, prof_b)
     # Índices (0-based):
     # 2:nombre, 5:edad, 6:vel, 7:res, 8:anti, 9:sere, 10:trab, 11:pase, 12:ctrl, 13:prof, 14:pot, 15:valor, 16:estrella
@@ -25,9 +27,12 @@ async def mostrar_ficha_jugador(interaction: discord.Interaction, club_id: int, 
 
     media = round(sum([vel, res, anti, sere, trab, pase, ctrl, prof, pot]) / 9)
 
+
     embed = discord.Embed(title=f"⚽ Ficha Técnica: {nombre} (#{numero})", color=discord.Color.blue())
     embed.add_field(name="Información", value=f"Edad: {edad}\nValor: {valor:,.0f} €", inline=False)
     embed.add_field(name="Calificación Global", value=f"⭐ {media}/100", inline=False)
+
+
 
     # Atributos con flechas
     attr_str = (
@@ -44,10 +49,13 @@ async def mostrar_ficha_jugador(interaction: discord.Interaction, club_id: int, 
     if estrella:
         embed.set_footer(text="⭐ Jugador Estrella")
 
+    view = FichaJugadorView(jugador_id, media)
+
     if interaction.response.is_done():
-        await interaction.followup.send(embed=embed, ephemeral=True)
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
     else:
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
 
 def obtener_icono_progreso(actual, base):
     if actual > base:
@@ -55,3 +63,13 @@ def obtener_icono_progreso(actual, base):
     elif actual < base:
         return "⬇️"
     return "➖"
+
+class FichaJugadorView(discord.ui.View):
+    def __init__(self, jugador_id, media):
+        super().__init__(timeout=60)
+        self.jugador_id = jugador_id
+        self.media = media
+
+    @discord.ui.button(label="💰 Configurar Precio", style=discord.ButtonStyle.primary, emoji="👕")
+    async def configurar_precio(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await interaction.response.send_modal(ConfigurarPrecioModal(self.jugador_id, self.media))

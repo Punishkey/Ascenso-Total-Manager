@@ -1,5 +1,8 @@
 import discord
+
+from config import NOMBRE_MONEDA
 from db.estadio_queries import renombrar_estadio_db
+from db.merch_queries import actualizar_precio_camiseta
 
 
 class RenombrarEstadioModal(discord.ui.Modal, title="Renombrar Estadio"):
@@ -31,3 +34,49 @@ class RenombrarEstadioModal(discord.ui.Modal, title="Renombrar Estadio"):
             )
         else:
             await interaction.response.send_message("❌ Error al renombrar el estadio.", ephemeral=True)
+
+
+class ConfigurarPrecioModal(discord.ui.Modal, title="Ajustar Precio de Camiseta"):
+    def __init__(self, jugador_id, media):
+        super().__init__()
+        self.jugador_id = jugador_id
+
+        # Fórmula de precio sugerido: 40 + (Media - 60) * 2.82
+        # Limitado entre 40 y 150 Keycoins
+        precio_sugerido = int(40 + (max(0, media - 60) * 2.82))
+        self.precio_rec = min(150, max(40, precio_sugerido))
+
+        # Definimos el campo de texto
+        self.precio = discord.ui.TextInput(
+            label=f"Precio recomendado: {self.precio_rec} {NOMBRE_MONEDA}",
+            style=discord.TextStyle.short,
+            placeholder=str(self.precio_rec),
+            default=str(self.precio_rec),
+            required=True,
+        )
+        self.add_item(self.precio)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            nuevo_precio = float(self.precio.value)
+
+            # Validación de rangos permitidos (40 a 150)
+            if nuevo_precio < 40 or nuevo_precio > 150:
+                await interaction.response.send_message(
+                    "❌ El precio debe estar entre **40 y 150 {NOMBRE_MONEDA}**.",
+                    ephemeral=True
+                )
+                return
+
+            # Guardar en base de datos
+            actualizar_precio_camiseta(self.jugador_id, nuevo_precio)
+            await interaction.response.send_message(
+                f"✅ Precio de camiseta actualizado a **{int(nuevo_precio)} {NOMBRE_MONEDA}**.",
+                ephemeral=True
+            )
+
+        except ValueError:
+            await interaction.response.send_message(
+                "❌ Por favor, introduce un número válido.",
+                ephemeral=True
+            )

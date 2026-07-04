@@ -37,6 +37,8 @@ def init_db():
     # Crear tabla servicios del estadio
     cursor.execute('''CREATE TABLE IF NOT EXISTS estadio_servicios 
                       (club_id INTEGER PRIMARY KEY, nivel_catering INTEGER DEFAULT 1, nivel_tienda INTEGER DEFAULT 1, fin_catering TEXT DEFAULT NULL, fin_tienda TEXT DEFAULT NULL, FOREIGN KEY(club_id) REFERENCES clubes(id));''')
+    # Crear tabla merchandising
+    cursor.execute('''CREATE TABLE IF NOT EXISTS merchandising_jugadores (jugador_id INTEGER PRIMARY KEY, precio_camiseta REAL DEFAULT 50.0, ventas_totales INTEGER DEFAULT 0, FOREIGN KEY (jugador_id) REFERENCES jugadores(id));''')
 
     # Comprobar si está vacía antes de insertar
     cursor.execute("SELECT count(*) FROM posiciones")

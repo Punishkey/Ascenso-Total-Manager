@@ -18,6 +18,17 @@ NIVEL_MAXIMO_MEJORA_SERVICIOS = 10
 HABILIDAD_MIN = 46
 HABILIDAD_MAX = 60
 
+# Camisetas
+# Media 60 = 40 Keycoins.
+# Media 99 (una estrella top) = 150 Keycoins.
+# Precio = 40 + (Media - 60) * 2.82
+# Si Media = 60:40 + (0) = 40.
+# Si Media = 99:40 + (39 * 2.82) approx 150.
+
+
+
+
+
 # ENTRENAMIENTO
 
 # --- Configuración de Desarrollo de Jugadores ---
