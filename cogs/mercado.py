@@ -27,9 +27,10 @@ class MercadoCog(commands.Cog):
 
         # Publicamos en mercado
         jugador_id = jugador[0]
+        nombre_jugador = jugador[1]
         if publicar_jugador(jugador_id, club_id, precio):
             await interaction.response.send_message(
-                f"✅ ¡{jugador[1]} (dorsal #{dorsal}) ha sido puesto en el mercado por {precio} monedas!",
+                f"✅ ¡¡{nombre_jugador} (dorsal #{dorsal}) ha sido puesto en el mercado por {precio} monedas!",
                 ephemeral=True)
         else:
             await interaction.response.send_message("❌ Error: Este jugador ya está en el mercado o hubo un problema.",

@@ -78,7 +78,8 @@ def obtener_jugador_por_numero(club_id, numero):
 
     # Seleccionamos todas las columnas necesarias para la ficha
     cursor.execute('''
-                   SELECT nombre,
+                   SELECT id,
+                          nombre,
                           edad,
                           velocidad,
                           resistencia,

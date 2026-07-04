@@ -87,3 +87,16 @@ def obtener_club_vendedor_id(fichaje_id):
     result = cursor.fetchone()
     conn.close()
     return result[0] if result else None
+
+def obtener_jugadores_en_venta_del_club(club_id):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT f.id, j.nombre, f.precio
+        FROM fichajes f
+        JOIN jugadores j ON f.jugador_id = j.id
+        WHERE f.club_vendedor_id = ?
+    """, (club_id,))
+    resultados = cursor.fetchall()
+    conn.close()
+    return resultados

@@ -1,5 +1,6 @@
 import discord
-from db.mercado_queries import obtener_jugadores_en_mercado, ejecutar_compra
+from db.mercado_queries import obtener_jugadores_en_mercado, ejecutar_compra, obtener_jugadores_en_venta_del_club
+from views.RetirarVentaView import RetirarVentaView
 
 
 class MercadoView(discord.ui.View):
@@ -87,28 +88,15 @@ class MercadoView(discord.ui.View):
             self.current_page += 1
             await interaction.response.edit_message(embed=self.get_embed(), view=self)
 
-    @discord.ui.button(label="Retirar Venta", style=discord.ButtonStyle.danger)
-    async def retirar(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(label="Mis Ventas", style=discord.ButtonStyle.secondary, row=1)
+    async def mis_ventas(self, interaction: discord.Interaction, button: discord.ui.Button):
         from db.club_queries import obtener_club_id_por_usuario
-        from db.mercado_queries import obtener_club_vendedor_id, retirar_jugador_mercado, obtener_jugadores_en_mercado
+        club_id = obtener_club_id_por_usuario(interaction.user.id)
 
-        # 1. Identificar al usuario
-        user_club_id = obtener_club_id_por_usuario(interaction.user.id)
-        fichaje_id = self.jugadores[self.current_page][0]
-
-        # 2. Seguridad: ¿Es el dueño?
-        if user_club_id != obtener_club_vendedor_id(fichaje_id):
-            await interaction.response.send_message("❌ Solo puedes retirar tus propias ventas.", ephemeral=True)
+        ventas = obtener_jugadores_en_venta_del_club(club_id)
+        if not ventas:
+            await interaction.response.send_message("❌ No tienes ningún jugador en venta.", ephemeral=True)
             return
 
-        # 3. Retirar usando TU función
-        retirar_jugador_mercado(fichaje_id)
-
-        # 4. Actualizar estado
-        self.jugadores = obtener_jugadores_en_mercado()
-        self.current_page = 0
-
-        if not self.jugadores:
-            await interaction.response.edit_message(content="🛒 Mercado vacío.", embed=None, view=None)
-        else:
-            await interaction.response.edit_message(content="✅ Venta retirada.", embed=self.get_embed(), view=self)
+        await interaction.response.send_message("Selecciona qué jugador quieres retirar:",
+                                                view=RetirarVentaView(club_id), ephemeral=True)
