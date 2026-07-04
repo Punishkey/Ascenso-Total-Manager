@@ -41,7 +41,7 @@ class ConfirmacionMejoraView(discord.ui.View):
             embed = view.actualizar_embed_inicial(self.club_id, interaction.user.id)
 
             await interaction.response.edit_message(
-                content=f"🏗️ **¡Obras iniciadas!** Se han descontado {self.coste} monedas. Tu estadio estará listo en 2 horas.",
+                content=f"🏗️ **¡Obras iniciadas!** Se han descontado {self.coste} Keycoins. Tu estadio estará listo en {TIEMPO_MEJORA_ESTADIO} horas.",
                 embed=embed,
                 view=view
             )
