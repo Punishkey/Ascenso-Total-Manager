@@ -36,21 +36,22 @@ class MercadoCog(commands.Cog):
             await interaction.response.send_message("❌ Error: Este jugador ya está en el mercado o hubo un problema.",
                                                     ephemeral=True)
 
-    @app_commands.command(name="mercado", description="Accede al mercado de fichajes")
-    async def mercado(self, interaction: discord.Interaction):
-        # Creamos la vista pasando el ID del usuario
-        view = MercadoView(interaction.user.id)
-
-        # Comprobamos si hay jugadores antes de enviar
-        if not view.jugadores:
-            await interaction.response.send_message(
-                "🛒 El mercado está vacío actualmente. ¡Sé el primero en vender!",
-                ephemeral=True
-            )
-            return
-
-        # Enviamos el mercado
-        await interaction.response.send_message(embed=view.get_embed(), view=view, ephemeral=True)
+    # SE COMENTA YA QUE SE IMPLEMENTA EL MERCADO EN LA VISTA ESTADIO
+    # @app_commands.command(name="mercado", description="Accede al mercado de fichajes")
+    # async def mercado(self, interaction: discord.Interaction):
+    #     # Creamos la vista pasando el ID del usuario
+    #     view = MercadoView(interaction.user.id)
+    #
+    #     # Comprobamos si hay jugadores antes de enviar
+    #     if not view.jugadores:
+    #         await interaction.response.send_message(
+    #             "🛒 El mercado está vacío actualmente. ¡Sé el primero en vender!",
+    #             ephemeral=True
+    #         )
+    #         return
+    #
+    #     # Enviamos el mercado
+    #     await interaction.response.send_message(embed=view.get_embed(), view=view, ephemeral=True)
 
 
 async def setup(bot):

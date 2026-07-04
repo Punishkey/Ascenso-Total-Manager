@@ -13,6 +13,7 @@ class EstadioSelect(discord.ui.Select):
             discord.SelectOption(label="Mejorar Estadio", value="upgrade", emoji="🏗️"),
             discord.SelectOption(label="Renombrar Estadio", value="rename", emoji="✍️"),
             discord.SelectOption(label="Ver Plantilla", value="plantilla", emoji="📋"),
+            discord.SelectOption(label="Ir al Mercado", value="mercado", emoji="🛒"),
         ]
 
         super().__init__(placeholder="Selecciona una acción...", options=options)
@@ -40,9 +41,17 @@ class EstadioSelect(discord.ui.Select):
             from views.modals import RenombrarEstadioModal
             await interaction.response.send_modal(RenombrarEstadioModal(self.club_id))
 
-        # elif self.values[0].startswith("ficha_"):
-        #     numero = int(self.values[0].split("_")[1])
-        #     await mostrar_ficha_jugador(interaction, self.club_id, numero)
+        elif self.values[0] == "mercado":
+            from views.mercado_view import MercadoView
+
+            view = MercadoView(interaction.user.id)
+
+            if not view.jugadores:
+                await interaction.response.send_message("🛒 El mercado está vacío.", ephemeral=True)
+            else:
+                await interaction.response.edit_message(content="🛒 **Mercado de Fichajes**",
+                                                        embed=view.get_embed(),
+                                                        view=view)
 
 
 class EstadioView(discord.ui.View):

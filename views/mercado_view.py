@@ -100,3 +100,21 @@ class MercadoView(discord.ui.View):
 
         await interaction.response.send_message("Selecciona qué jugador quieres retirar:",
                                                 view=RetirarVentaView(club_id), ephemeral=True)
+
+    @discord.ui.button(label="Volver al Estadio", style=discord.ButtonStyle.secondary, row=2)
+    async def volver_estadio(self, interaction: discord.Interaction, button: discord.ui.Button):
+        from views.estadio_view import EstadioView
+
+        # Obtenemos el club_id necesario para EstadioView
+        from db.club_queries import obtener_club_id_por_usuario
+        club_id = obtener_club_id_por_usuario(interaction.user.id)
+
+        # Creamos la vista del estadio
+        view = EstadioView(club_id, interaction.user.id)
+
+        # Volvemos a mostrar el embed inicial del estadio
+        await interaction.response.edit_message(
+            content=None,
+            embed=view.actualizar_embed_inicial(),
+            view=view
+        )
