@@ -1,8 +1,4 @@
-import discord
-from discord import app_commands
 from discord.ext import commands
-from db import jugador_queries, club_queries
-from db.mercado_queries import publicar_jugador
 
 
 class MercadoCog(commands.Cog):

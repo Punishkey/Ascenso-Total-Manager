@@ -1,5 +1,4 @@
 import sqlite3
-
 from config import DB_NAME
 
 def publicar_jugador(jugador_id, club_vendedor_id, precio):

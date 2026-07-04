@@ -1,11 +1,10 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from db import club_queries, estadio_queries, jugador_queries
+from db import club_queries, estadio_queries
 from db.transaction_queries import obtener_estadisticas_club
 from views.embed_utils import crear_embed_base
 from views.menu_view import enviar_manual_tutorial
-from views.plantilla_view import PlantillaPaginator
 from views.estadio_view import EstadioView
 
 

@@ -1,6 +1,6 @@
 import discord
 from db.club_queries import mejorar_estadio_db
-from views.embed_utils import crear_embed_estadio
+from views.embed_utils import crear_embed_base
 import views.estadio_view
 
 
@@ -19,7 +19,7 @@ class ConfirmacionMejoraView(discord.ui.View):
             view = views.estadio_view.EstadioView(self.club_id, interaction.user.id)
 
             await interaction.response.edit_message(
-                embed=crear_embed_estadio(self.club_id),
+                embed=crear_embed_base(self.club_id),
                 view=view
             )
         else:
@@ -32,6 +32,6 @@ class ConfirmacionMejoraView(discord.ui.View):
         view = views.estadio_view.EstadioView(self.club_id, interaction.user.id)
 
         await interaction.response.edit_message(
-            embed=crear_embed_estadio(self.club_id),
+            embed=crear_embed_base(self.club_id),
             view=view
         )
