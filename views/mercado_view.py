@@ -49,7 +49,7 @@ class MercadoView(discord.ui.View):
             return discord.Embed(title="Error", description=f"Error en datos: {e}", color=discord.Color.red())
 
     @discord.ui.button(label="◀️", style=discord.ButtonStyle.primary, row=0)
-    async def prev(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def prev(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if self.current_page > 0:
             self.current_page -= 1
             await interaction.response.edit_message(embed=self.get_embed(), view=self)
@@ -82,14 +82,18 @@ class MercadoView(discord.ui.View):
         else:
             await interaction.response.send_message(f"❌ {mensaje}", ephemeral=True)
 
+    @discord.ui.button(label="Vender", style=discord.ButtonStyle.blurple, row=1)
+    async def vender(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await interaction.response.send_modal(VenderJugadorModal())
+
     @discord.ui.button(label="▶️", style=discord.ButtonStyle.primary, row=0)
-    async def next(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def next(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if self.current_page < len(self.jugadores) - 1:
             self.current_page += 1
             await interaction.response.edit_message(embed=self.get_embed(), view=self)
 
     @discord.ui.button(label="Mis Ventas", style=discord.ButtonStyle.secondary, row=1)
-    async def mis_ventas(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def mis_ventas(self, interaction: discord.Interaction, _button: discord.ui.Button):
         from db.club_queries import obtener_club_id_por_usuario
         club_id = obtener_club_id_por_usuario(interaction.user.id)
 
@@ -118,3 +122,33 @@ class MercadoView(discord.ui.View):
             embed=view.actualizar_embed_inicial(),
             view=view
         )
+
+
+class VenderJugadorModal(discord.ui.Modal, title="Vender Jugador"):
+    dorsal = discord.ui.TextInput(label="Dorsal del jugador", placeholder="Ej: 7", min_length=1, max_length=2)
+    precio = discord.ui.TextInput(label="Precio de venta", placeholder="Ej: 500000", min_length=1, max_length=10)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        from db import club_queries, jugador_queries
+        from db.mercado_queries import publicar_jugador
+
+        club_id = club_queries.obtener_club_id_por_usuario(interaction.user.id)
+
+        # Validar dorsal y precio
+        try:
+            dorsal_val = int(self.dorsal.value)
+            precio_val = int(self.precio.value)
+        except ValueError:
+            await interaction.response.send_message("❌ El dorsal y el precio deben ser números.", ephemeral=True)
+            return
+
+        jugador = jugador_queries.obtener_jugador_por_numero(club_id, dorsal_val)
+        if not jugador:
+            await interaction.response.send_message("❌ No tienes ningún jugador con ese dorsal.", ephemeral=True)
+            return
+
+        # jugador[0] es ID, jugador[1] es nombre
+        if publicar_jugador(jugador[0], club_id, precio_val):
+            await interaction.response.send_message(f"✅ ¡{jugador[1]} puesto en el mercado!", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ Este jugador ya está en venta o hubo un error.", ephemeral=True)
