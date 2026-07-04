@@ -10,8 +10,8 @@ PRESUPUESTO_INICIAL = 1000
 COSTE_MEJORA_ESTADIO = 1000
 
 # Rango de habilidades (stats) para nuevos jugadores
-HABILIDAD_MIN = 50
-HABILIDAD_MAX = 85
+HABILIDAD_MIN = 46
+HABILIDAD_MAX = 60
 
 # ENTRENAMIENTO
 
@@ -19,7 +19,7 @@ HABILIDAD_MAX = 85
 EDAD_JOVEN = 24           # Edad hasta la que suben sin penalizaciones
 EDAD_DECLIVE = 32         # Edad a partir de la cual empiezan a bajar atributos físicos
 POTENCIAL_FACTOR = 10     # Multiplicador del potencial para definir el techo (pot 8 * 10 = 80)
-COSTE_ENTRENAMIENTO = 500
+COSTE_ENTRENAMIENTO = 100
 
 
 # PARTIDO
