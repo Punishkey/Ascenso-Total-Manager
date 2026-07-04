@@ -1,4 +1,6 @@
 import discord
+
+from config import CAPACIDAD_POR_NIVEL, COSTE_MEJORA_ESTADIO
 from db.club_queries import obtener_info_estadio
 from db.estadio_queries import obtener_info_club_y_estadio
 from views.plantilla_view import PlantillaPaginator
@@ -23,14 +25,14 @@ class EstadioSelect(discord.ui.Select):
         if self.values[0] == "upgrade":
             info = obtener_info_estadio(self.club_id)
             nivel_actual, capacidad_actual = info[1], info[2]
-            coste = nivel_actual * 1000
+            coste = nivel_actual * COSTE_MEJORA_ESTADIO
 
             embed = discord.Embed(title="🏗️ Confirmar Mejora de Estadio", color=discord.Color.orange())
             embed.add_field(name="Estado Actual", value=f"Nivel {nivel_actual} | {capacidad_actual} asientos",
                             inline=False)
             embed.add_field(name="Tras la Mejora",
-                            value=f"Nivel {nivel_actual + 1} | {capacidad_actual + 2500} asientos", inline=False)
-            embed.add_field(name="💰 Coste", value=f"{coste} monedas", inline=False)
+                            value=f"Nivel {nivel_actual + 1} | {capacidad_actual + CAPACIDAD_POR_NIVEL} asientos", inline=False)
+            embed.add_field(name="💰 Coste", value=f"{coste} Keycoins", inline=False)
 
             await interaction.response.edit_message(embed=embed, view=ConfirmacionMejoraView(self.club_id, coste))
 

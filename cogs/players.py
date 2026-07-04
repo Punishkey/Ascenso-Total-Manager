@@ -3,6 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 from db import club_queries, estadio_queries, jugador_queries
 from db.transaction_queries import obtener_estadisticas_club
+from views.embed_utils import crear_embed_base
 from views.menu_view import enviar_manual_tutorial
 from views.plantilla_view import PlantillaPaginator
 from views.estadio_view import EstadioView
@@ -51,10 +52,10 @@ class Players(commands.Cog):
         nombre_club, presupuesto, nombre_estadio, nivel, capacidad = info
 
         # Creamos el Embed profesional
-        embed = discord.Embed(title=f"🏟️ Información de {nombre_club}", color=discord.Color.blue())
+        embed = crear_embed_base(f"🏟️ Información de {nombre_club}")
         embed.add_field(name="💰 Presupuesto", value=f"{presupuesto} monedas", inline=False)
         embed.add_field(name="📍 Nombre del Estadio", value=nombre_estadio, inline=True)
-        embed.add_field(name="⭐ Nivel", value=nivel, inline=True)
+        embed.add_field(name="⭐ Nivel", value=str(nivel), inline=True)
         embed.add_field(name="👥 Capacidad", value=f"{capacidad} asientos", inline=True)
 
         historial_str = (
