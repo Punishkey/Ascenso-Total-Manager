@@ -13,6 +13,7 @@ class EstadioSelect(discord.ui.Select):
             discord.SelectOption(label="Mejorar Estadio", value="upgrade", emoji="🏗️"),
             discord.SelectOption(label="Renombrar Estadio", value="rename", emoji="✍️"),
             discord.SelectOption(label="Ver Plantilla", value="plantilla", emoji="📋"),
+            discord.SelectOption(label="Entrenar Jugadores", value="entrenar", emoji="🏋️"),
             discord.SelectOption(label="Ir al Mercado", value="mercado", emoji="🛒"),
         ]
 
@@ -52,6 +53,19 @@ class EstadioSelect(discord.ui.Select):
                 await interaction.response.edit_message(content="🛒 **Mercado de Fichajes**",
                                                         embed=view.get_embed(),
                                                         view=view)
+
+        elif self.values[0] == "entrenar":
+            from views.entrenamiento_view import EntrenamientoView
+            embed = discord.Embed(
+                title="🏋️ Sala de Entrenamiento",
+                description="Selecciona el tipo de entrenamiento y al jugador que quieres mejorar.",
+                color=discord.Color.green()
+            )
+            await interaction.response.edit_message(
+                content=None,
+                embed=embed,
+                view=EntrenamientoView(self.club_id, interaction.user.id)
+            )
 
 
 class EstadioView(discord.ui.View):
