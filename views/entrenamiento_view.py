@@ -1,8 +1,8 @@
 import discord
 
-from config import COSTE_ENTRENAMIENTO
+from config import COSTE_ENTRENAMIENTO, NOMBRE_MONEDA
 from db.jugador_queries import obtener_lista_jugadores, entrenar_atributo, obtener_jugador_por_numero, puede_mejorar
-from db.club_queries import obtener_club_id_por_usuario, obtener_presupuesto, restar_dinero
+from db.club_queries import obtener_presupuesto, restar_dinero
 
 
 class EntrenamientoView(discord.ui.View):
@@ -56,7 +56,7 @@ class BotonEntrenar(discord.ui.Button):
     def __init__(self, parent_view):
         self.parent_view = parent_view
         self.procesando = False
-        super().__init__(label=f"¡Entrenar ahora! ({COSTE_ENTRENAMIENTO} monedas)", style=discord.ButtonStyle.green, row=2)
+        super().__init__(label=f"¡Entrenar ahora! ({COSTE_ENTRENAMIENTO} {NOMBRE_MONEDA})", style=discord.ButtonStyle.green, row=2)
 
     async def callback(self, interaction: discord.Interaction):
         # Evitar doble clic

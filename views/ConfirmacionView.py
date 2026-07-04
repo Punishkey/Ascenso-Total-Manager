@@ -1,7 +1,7 @@
 from datetime import timedelta, datetime
 import discord
 import views.estadio_view
-from config import TIEMPO_MEJORA_ESTADIO
+from config import TIEMPO_MEJORA_ESTADIO, NOMBRE_MONEDA
 from db.database import get_connection
 
 
@@ -21,7 +21,7 @@ class ConfirmacionMejoraView(discord.ui.View):
         presupuesto = cursor.fetchone()[0]
 
         if presupuesto < self.coste:
-            await interaction.response.send_message("❌ No tienes suficientes monedas para pagar la mejora.",
+            await interaction.response.send_message(f"❌ No tienes suficientes {NOMBRE_MONEDA} para pagar la mejora.",
                                                     ephemeral=True)
             conn.close()
             return
@@ -41,7 +41,7 @@ class ConfirmacionMejoraView(discord.ui.View):
             embed = view.actualizar_embed_inicial(self.club_id, interaction.user.id)
 
             await interaction.response.edit_message(
-                content=f"🏗️ **¡Obras iniciadas!** Se han descontado {self.coste} Keycoins. Tu estadio estará listo en {TIEMPO_MEJORA_ESTADIO} horas.",
+                content=f"🏗️ **¡Obras iniciadas!** Se han descontado {self.coste} {NOMBRE_MONEDA}. Tu estadio estará listo en {TIEMPO_MEJORA_ESTADIO} horas.",
                 embed=embed,
                 view=view
             )

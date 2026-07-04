@@ -1,5 +1,6 @@
 import discord
 
+from config import NOMBRE_MONEDA
 from db.mercado_queries import obtener_jugadores_en_venta_del_club, retirar_jugador_mercado
 
 
@@ -15,7 +16,7 @@ class RetirarSelect(discord.ui.Select):
         # Obtenemos sus jugadores
         ventas = obtener_jugadores_en_venta_del_club(club_id)
         options = [
-            discord.SelectOption(label=f"{nombre} - {precio} monedas", value=str(fichaje_id))
+            discord.SelectOption(label=f"{nombre} - {precio} {NOMBRE_MONEDA}", value=str(fichaje_id))
             for fichaje_id, nombre, precio in ventas
         ]
         super().__init__(placeholder="Selecciona un jugador para retirar...", options=options)

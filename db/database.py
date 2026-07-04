@@ -31,8 +31,12 @@ def init_db():
     # Crear tabla fichajes
     cursor.execute('''CREATE TABLE IF NOT EXISTS fichajes 
                       (id INTEGER PRIMARY KEY AUTOINCREMENT, jugador_id INTEGER, club_vendedor_id INTEGER, precio INTEGER, fecha_publicacion DATETIME, FOREIGN KEY (jugador_id) REFERENCES jugadores(id), FOREIGN KEY (club_vendedor_id) REFERENCES clubes(id))''')
+    # Crear tabla historial Jugadores (Jugadores originales con sus stats originales desde el inicio)
     cursor.execute('''CREATE TABLE IF NOT EXISTS historico_jugadores 
                       (id INTEGER PRIMARY KEY AUTOINCREMENT, jugador_id INTEGER, nombre TEXT, numero INTEGER, posicion_id TEXT, edad INTEGER, velocidad_base INTEGER, resistencia_base INTEGER, anticipacion_base INTEGER, serenidad_base INTEGER, trabajo_equipo_base INTEGER, precision_pases_base INTEGER, control_balon_base INTEGER, profesionalidad_base INTEGER, FOREIGN KEY(jugador_id) REFERENCES jugadores(id));''')
+    # Crear tabla servicios del estadio
+    cursor.execute('''CREATE TABLE IF NOT EXISTS estadio_servicios 
+                      (club_id INTEGER PRIMARY KEY, nivel_catering INTEGER DEFAULT 1, nivel_tienda INTEGER DEFAULT 1, fin_catering TEXT DEFAULT NULL, fin_tienda TEXT DEFAULT NULL, FOREIGN KEY(club_id) REFERENCES clubes(id));''')
 
     # Comprobar si está vacía antes de insertar
     cursor.execute("SELECT count(*) FROM posiciones")

@@ -161,7 +161,7 @@ class MatchCog(commands.Cog):
 
         club_usuario_id = obtener_club_id_por_usuario(interaction.user.id)
         if not club_usuario_id:
-            await interaction.response.send_message("❌ Primero debes crear un club usando `/fundar`.", ephemeral=True)
+            await interaction.response.send_message("❌ Primero debes crear un club usando `/comenzar`.", ephemeral=True)
             return
 
         rival_data = obtener_rival_ia(club_usuario_id)

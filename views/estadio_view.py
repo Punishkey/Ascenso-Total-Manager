@@ -1,18 +1,22 @@
 import discord
-from config import CAPACIDAD_POR_NIVEL, COSTE_MEJORA_ESTADIO
+from config import CAPACIDAD_POR_NIVEL, COSTE_MEJORA_ESTADIO, NOMBRE_MONEDA
 from db.club_queries import obtener_info_estadio, obtener_tiempo_restante_construccion, check_y_aplicar_mejora
 from db.estadio_queries import obtener_info_club_y_estadio
 from views.plantilla_view import PlantillaPaginator
 from views.ConfirmacionView import ConfirmacionMejoraView
 from db.transaction_queries import obtener_estadisticas_club
+from views.servicios_view import ServiciosView
 
 
 class EstadioSelect(discord.ui.Select):
-    def __init__(self, club_id):
+    def __init__(self, club_id, user_id):
         self.club_id = club_id
+        self.user_id = user_id
+
         options = [
             discord.SelectOption(label="Mejorar Estadio", value="upgrade", emoji="🏗️"),
             discord.SelectOption(label="Renombrar Estadio", value="rename", emoji="✍️"),
+            discord.SelectOption(label="Gestionar Servicios", value="servicios", emoji="🌭"),
             discord.SelectOption(label="Ver Plantilla", value="plantilla", emoji="📋"),
             discord.SelectOption(label="Entrenar Jugadores", value="entrenar", emoji="🏋️"),
             discord.SelectOption(label="Ir al Mercado", value="mercado", emoji="🛒"),
@@ -36,9 +40,16 @@ class EstadioSelect(discord.ui.Select):
                             inline=False)
             embed.add_field(name="Tras la Mejora",
                             value=f"Nivel {nivel_actual + 1} | {capacidad_actual + CAPACIDAD_POR_NIVEL} asientos", inline=False)
-            embed.add_field(name="💰 Coste", value=f"{coste} Keycoins", inline=False)
+            embed.add_field(name="💰 Coste", value=f"{coste} {NOMBRE_MONEDA}", inline=False)
 
             await interaction.response.edit_message(embed=embed, view=ConfirmacionMejoraView(self.club_id, coste))
+
+        elif self.values[0] == "servicios":
+            view = ServiciosView(self.club_id, self.user_id)
+            await interaction.response.edit_message(
+                embed=view.embed,
+                view=view
+            )
 
         elif self.values[0] == "plantilla":
             view = PlantillaPaginator(self.club_id, interaction.user.id)
@@ -54,7 +65,7 @@ class EstadioSelect(discord.ui.Select):
             view = MercadoView(interaction.user.id)
 
             if not view.jugadores:
-                await interaction.response.send_message("🛒 El mercado está vacío.", ephemeral=True)
+                await interaction.response.send_message("🛒 El mercado de fichajes está vacío.", ephemeral=True)
             else:
                 await interaction.response.edit_message(content="🛒 **Mercado de Fichajes**",
                                                         embed=view.get_embed(),
@@ -79,7 +90,7 @@ class EstadioView(discord.ui.View):
         super().__init__(timeout=None)
         self.club_id = club_id
         self.user_id = user_id
-        self.add_item(EstadioSelect(club_id))
+        self.add_item(EstadioSelect(club_id, user_id))
 
 
     def actualizar_embed_inicial(self, club_id, user_id):
@@ -93,7 +104,7 @@ class EstadioView(discord.ui.View):
 
 
         embed = discord.Embed(title=f"🏟️ Información de {nombre_club}", color=discord.Color.blue())
-        embed.add_field(name="💰 Presupuesto", value=f"{presupuesto} Keycoins", inline=False)
+        embed.add_field(name="💰 Presupuesto", value=f"{presupuesto} {NOMBRE_MONEDA}", inline=False)
         embed.add_field(name="📍 Nombre del Estadio", value=nombre_estadio, inline=True)
         embed.add_field(name="⭐ Nivel", value=str(nivel), inline=True)
         embed.add_field(name="👥 Capacidad", value=f"{capacidad} asientos", inline=True)
