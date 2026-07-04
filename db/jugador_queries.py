@@ -44,14 +44,31 @@ def insertar_jugador_en_cursor(cursor, club_id, data):
     valor = (suma * 1000) * (data['pot'] / 10)
     es_estrella = 1 if (suma / 7) > 85 else 0
 
+    #  Insertar en jugadores
     cursor.execute('''
                    INSERT INTO jugadores (club_id, nombre, numero, posicion_id, edad, velocidad, resistencia,
                                           anticipacion, serenidad, trabajo_equipo, precision_pases,
                                           control_balon, profesionalidad, potencial, valor, es_estrella)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                   ''', (club_id, data['nombre'], data['numero'], data['posicion_id'], data['edad'], data['vel'], data['res'],
+                   ''', (club_id, data['nombre'], data['numero'], data['posicion_id'], data['edad'], data['vel'],
+                         data['res'],
                          data['anti'], data['sere'], data['trab'], data['pase'], data['ctrl'],
                          data['prof'], data['pot'], valor, es_estrella))
+
+    # Obtener el ID del jugador recién insertado
+    nuevo_jugador_id = cursor.lastrowid
+
+    #  INSERTAR EN HISTÓRICO
+    cursor.execute('''
+                   INSERT INTO historico_jugadores
+                   (jugador_id, nombre, numero, posicion_id, edad, velocidad_base, resistencia_base,
+                    anticipacion_base, serenidad_base, trabajo_equipo_base, precision_pases_base,
+                    control_balon_base, profesionalidad_base)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ''',
+                   (nuevo_jugador_id, data['nombre'], data['numero'], data['posicion_id'], data['edad'],
+                    data['vel'], data['res'], data['anti'], data['sere'], data['trab'],
+                    data['pase'], data['ctrl'], data['prof']))
 
 def obtener_plantilla(club_id):
     conn = get_connection()
