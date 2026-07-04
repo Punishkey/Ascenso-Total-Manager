@@ -65,7 +65,7 @@ async def enviar_manual_tutorial(interaction: discord.Interaction):
     e2.description = (
         "Lee todo este tutorial y, abajo en el desplegable, selecciona **Fundar Equipo** y dale un nombre a tu club. 📝\n\n"
         "Una vez hecho esto, sucederá lo siguiente:\n"
-        "• Se generarán **16 jugadores** de forma aleatoria con sus estadísticas propias. ⚽\n"
+        "• Se generarán **18 jugadores** de forma aleatoria con sus estadísticas propias. ⚽\n"
         "• Recibirás **1,000 Keycoins** para empezar a gestionar tus finanzas. 💰\n"
         "• Tendrás acceso al comando **/estadio**, donde se centraliza toda la operativa del juego. 🏟️"
     )
