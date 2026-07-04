@@ -3,6 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 from db import club_queries, estadio_queries, jugador_queries
 from db.transaction_queries import obtener_estadisticas_club
+from views.menu_view import enviar_manual_tutorial
 from views.plantilla_view import PlantillaPaginator
 from views.estadio_view import EstadioView
 
@@ -11,22 +12,28 @@ class Players(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="fundar", description="Funda tu propio club de fútbol")
-    async def fundar(self, interaction: discord.Interaction, nombre: str):
-        # Verificamos si ya se tiene club
-        if club_queries.ya_tiene_club(interaction.user.id):
-            await interaction.response.send_message(
-                "❌ **Error:** Ya tienes un club fundado. ¡No puedes fundar dos clubes!",
-                ephemeral=True
-            )
-            return
-        # Fundamos el club
-        try:
-            club_id = club_queries.crear_club(interaction.user.id, nombre)
-            await interaction.response.send_message(f'¡Club "{nombre}" fundado con éxito! (ID: {club_id})')
-        except Exception as e:
-            print(f"Error al fundar: {e}")
-            await interaction.response.send_message("Hubo un error inesperado al fundar el club.", ephemeral=True)
+    @app_commands.command(name="comenzar", description="Comando inicial de Ascenso Total Manager")
+    async def comenzar(self, interaction: discord.Interaction):
+        await enviar_manual_tutorial(interaction)
+
+
+    # COMENTADO: AÑADIDO AL MENÚ PRINCIPAL
+    # @app_commands.command(name="fundar", description="Funda tu propio club de fútbol")
+    # async def fundar(self, interaction: discord.Interaction, nombre: str):
+    #     # Verificamos si ya se tiene club
+    #     if club_queries.ya_tiene_club(interaction.user.id):
+    #         await interaction.response.send_message(
+    #             "❌ **Error:** Ya tienes un club fundado. ¡No puedes fundar dos clubes!",
+    #             ephemeral=True
+    #         )
+    #         return
+    #     # Fundamos el club
+    #     try:
+    #         club_id = club_queries.crear_club(interaction.user.id, nombre)
+    #         await interaction.response.send_message(f'¡Club "{nombre}" fundado con éxito! (ID: {club_id})')
+    #     except Exception as e:
+    #         print(f"Error al fundar: {e}")
+    #         await interaction.response.send_message("Hubo un error inesperado al fundar el club.", ephemeral=True)
 
     @app_commands.command(name="estadio", description="Consulta los datos de tu club y estadio")
     async def estadio(self, interaction: discord.Interaction):
@@ -34,7 +41,7 @@ class Players(commands.Cog):
         club_id = club_queries.obtener_club_id_por_usuario(interaction.user.id)
 
         if not club_id:
-            await interaction.response.send_message("❌ No tienes un club fundado. Usa `/fundar` primero.",
+            await interaction.response.send_message("❌ No tienes un club fundado. Usa `/comenzar` primero.",
                                                     ephemeral=True)
             return
 
