@@ -1,7 +1,8 @@
 import discord
-from config import NOMBRE_MONEDA
+from config import NOMBRE_MONEDA, COSTE_MEJORA_SERVICIOS
 from db.estadio_queries import renombrar_estadio_db
 from db.merch_queries import actualizar_precio_tienda_club, actualizar_precio_individual
+from db.club_queries import mejorar_servicio_db
 
 
 class RenombrarEstadioModal(discord.ui.Modal, title="Renombrar Estadio"):
@@ -35,7 +36,6 @@ class ConfigurarPrecioModal(discord.ui.Modal, title="Ajustar Precio de Camiseta"
         self.club_id = club_id
         self.jugador_id = jugador_id
 
-        # Fórmula exacta que pediste usando la media real
         precio_sugerido = int(40 + (max(0, media - 60) * 2.82))
         self.precio_rec = min(150, max(40, precio_sugerido))
 
@@ -56,22 +56,21 @@ class ConfigurarPrecioModal(discord.ui.Modal, title="Ajustar Precio de Camiseta"
                                                         ephemeral=True)
                 return
 
-            # Si hay jugador_id, actualizamos solo a ese jugador, si no, a todo el club
             if self.jugador_id:
                 actualizar_precio_individual(self.jugador_id, nuevo_precio)
-                await interaction.response.send_message(f"✅ Precio actualizado a **{int(nuevo_precio)} {NOMBRE_MONEDA}** para la camiseta del jugador.",
-                                                        ephemeral=True)
+                await interaction.response.send_message(
+                    f"✅ Precio actualizado a **{int(nuevo_precio)} {NOMBRE_MONEDA}** para el jugador.", ephemeral=True)
             else:
                 actualizar_precio_tienda_club(self.club_id, nuevo_precio)
-                await interaction.response.send_message(f"✅ Precio actualizado a **{int(nuevo_precio)} {NOMBRE_MONEDA}** para todas las camisetas de todos los jugadores del club.",
-                                                        ephemeral=True)
+                await interaction.response.send_message(
+                    f"✅ Precio actualizado a **{int(nuevo_precio)} {NOMBRE_MONEDA}** para todo el club.",
+                    ephemeral=True)
         except ValueError:
             await interaction.response.send_message("❌ Por favor, introduce un número válido.", ephemeral=True)
 
 
 class ConfirmarMejoraServicioModal(discord.ui.Modal):
     def __init__(self, club_id, tipo_servicio, nivel_actual, view_callback):
-        # Título dinámico
         nombre_servicio = "Catering" if "catering" in tipo_servicio else "Tienda"
         super().__init__(title=f"Confirmar mejora de {nombre_servicio}")
 
@@ -79,12 +78,13 @@ class ConfirmarMejoraServicioModal(discord.ui.Modal):
         self.tipo_servicio = tipo_servicio
         self.view_callback = view_callback
 
-        # UI para mostrar la info
+        # Cálculo del coste: Nivel actual * Coste base definido en config
+        self.coste_total = (nivel_actual + 1) * COSTE_MEJORA_SERVICIOS
+
         self.info = discord.ui.TextInput(
-            label="Detalles de la obra",
+            label="Detalles de la inversión",
             style=discord.TextStyle.paragraph,
-            default=f"Nivel actual: {nivel_actual}\nNivel tras obra: {nivel_actual + 1}\n\n¿Confirmas el inicio de las obras?",
-            required=False,
+            default=f"Nivel actual: {nivel_actual}\nNivel a alcanzar: {nivel_actual + 1}\n\nCoste: {self.coste_total} {NOMBRE_MONEDA}"
         )
         self.add_item(self.info)
 
@@ -93,7 +93,6 @@ class ConfirmarMejoraServicioModal(discord.ui.Modal):
 
         if exito:
             await interaction.response.send_message("🏗️ Obras iniciadas correctamente.", ephemeral=True)
-            # Refrescamos la vista principal
             await self.view_callback()
         else:
             await interaction.response.send_message(f"❌ {mensaje}", ephemeral=True)
