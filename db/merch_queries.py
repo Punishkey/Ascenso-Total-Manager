@@ -60,3 +60,45 @@ def actualizar_precio_individual(jugador_id, nuevo_precio):
     ''', (jugador_id, nuevo_precio, nuevo_precio))
     conn.commit()
     conn.close()
+
+def actualizar_precio_producto_catering(club_id, producto, nuevo_precio):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO catering_precios (club_id, producto, precio)
+        VALUES (?, ?, ?)
+        ON CONFLICT(club_id, producto) DO UPDATE SET precio = ?
+    ''', (club_id, producto, nuevo_precio, nuevo_precio))
+    conn.commit()
+    conn.close()
+
+def obtener_precios_catering(club_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT producto, precio FROM catering_precios WHERE club_id = ?', (club_id,))
+    res = cursor.fetchall()
+    conn.close()
+    return res
+
+def obtener_ventas_catering(club_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT producto, precio, ventas_totales FROM catering_precios WHERE club_id = ?', (club_id,))
+    res = cursor.fetchall()
+    conn.close()
+    return res # Devuelve [('bebida', 2.0, 50), ...]
+
+def obtener_ventas_tienda(club_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Unimos con la tabla jugadores para obtener el nombre
+    cursor.execute('''
+        SELECT j.nombre, m.precio_camiseta, m.ventas_totales 
+        FROM merchandising_jugadores m
+        JOIN jugadores j ON m.jugador_id = j.id
+        WHERE j.club_id = ?
+    ''', (club_id,))
+    res = cursor.fetchall()
+    conn.close()
+    return res # Devuelve [('Nombre Jugador', 50.0, 10), ...]
+

@@ -41,6 +41,8 @@ def init_db():
     cursor.execute('''CREATE TABLE IF NOT EXISTS merchandising_jugadores (jugador_id INTEGER PRIMARY KEY, precio_camiseta REAL DEFAULT 50.0, ventas_totales INTEGER DEFAULT 0, FOREIGN KEY (jugador_id) REFERENCES jugadores(id));''')
     # Crear tabla eventos partido
     cursor.execute('''CREATE TABLE IF NOT EXISTS eventos_partido (id INTEGER PRIMARY KEY AUTOINCREMENT, partido_id INTEGER, jugador_nombre TEXT, equipo_nombre TEXT, tipo_evento TEXT, minuto INTEGER);''')
+    # Crear tabla catering precios
+    cursor.execute('''CREATE TABLE IF NOT EXISTS catering_precios (club_id INTEGER NOT NULL, producto TEXT NOT NULL, precio REAL NOT NULL, ventas_totales, PRIMARY KEY (club_id, producto), FOREIGN KEY (club_id) REFERENCES clubes(id) ON DELETE CASCADE);''')
 
 
     # Comprobar si está vacía antes de insertar

@@ -96,3 +96,33 @@ class ConfirmarMejoraServicioModal(discord.ui.Modal):
             await self.view_callback()
         else:
             await interaction.response.send_message(f"❌ {mensaje}", ephemeral=True)
+
+
+class ConfigurarCateringModal(discord.ui.Modal, title="Configurar Precios de Catering"):
+    def __init__(self, club_id):
+        super().__init__()
+        self.club_id = club_id
+
+        self.producto = discord.ui.TextInput(
+            label="Producto (Bebida, Patatas, Bocadillo)",
+            placeholder="Ej: Bocadillo",
+            required=True
+        )
+        self.precio = discord.ui.TextInput(
+            label="Nuevo Precio",
+            placeholder="Ej: 5",
+            required=True
+        )
+        self.add_item(self.producto)
+        self.add_item(self.precio)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            precio = float(self.precio.value)
+            producto = self.producto.value.lower()
+
+            actualizar_precio_producto_catering(self.club_id, producto, precio)
+            await interaction.response.send_message(
+                f"✅ Precio de **{producto}** actualizado a {precio} {NOMBRE_MONEDA}.", ephemeral=True)
+        except ValueError:
+            await interaction.response.send_message("❌ Introduce un precio válido.", ephemeral=True)

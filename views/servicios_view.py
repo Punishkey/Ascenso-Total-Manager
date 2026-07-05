@@ -1,10 +1,38 @@
 import discord
-from db.club_queries import (get_connection, mejorar_servicio_db,
-                             check_y_aplicar_mejora_servicio,
+
+from config import NOMBRE_MONEDA
+from db.club_queries import (get_connection, check_y_aplicar_mejora_servicio,
                              obtener_tiempo_restante_construccion)
-from db.estadio_queries import tiene_tienda_merchandising
-from db.jugador_queries import obtener_media_titular
-from views.modals import ConfigurarPrecioModal, ConfirmarMejoraServicioModal
+from db.merch_queries import obtener_ventas_tienda, obtener_ventas_catering
+from views.modals import ConfirmarMejoraServicioModal
+
+
+class MenuServicios(discord.ui.Select):
+    def __init__(self, club_id, user_id):
+        self.club_id = club_id
+        self.user_id = user_id
+        options = [
+            discord.SelectOption(label="Estadísticas de Catering", value="stats_catering", emoji="🍟"),
+            discord.SelectOption(label="Estadísticas de Tienda", value="stats_tienda", emoji="👕"),
+            discord.SelectOption(label="Gestionar Precios Catering", value="config_catering", emoji="💰"),
+            discord.SelectOption(label="Gestionar Precios Tienda", value="config_tienda", emoji="🛠️"),
+        ]
+        super().__init__(placeholder="Selecciona una acción...", options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        if self.values[0] == "stats_catering":
+            datos = obtener_ventas_catering(self.club_id)
+            texto = "\n".join([f"🥤 {p}: {pre} {NOMBRE_MONEDA} | Ventas: {v}" for p, pre, v in datos])
+            embed = discord.Embed(title="🍟 Estadísticas Catering", description=texto or "Sin datos",
+                                  color=discord.Color.gold())
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        elif self.values[0] == "stats_tienda":
+            datos = obtener_ventas_tienda(self.club_id)
+            texto = "\n".join([f"👕 {nom}: {pre} {NOMBRE_MONEDA} | Ventas: {v}" for nom, pre, v in datos])
+            embed = discord.Embed(title="👕 Estadísticas Tienda", description=texto or "Sin datos",
+                                  color=discord.Color.blue())
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 class ServiciosView(discord.ui.View):
@@ -13,6 +41,7 @@ class ServiciosView(discord.ui.View):
         self.club_id = club_id
         self.user_id = user_id
         self.actualizar_estado_botones()
+        self.add_item(MenuServicios(club_id, user_id))
 
     def actualizar_estado_botones(self):
         check_y_aplicar_mejora_servicio(self.club_id, 'nivel_catering')
@@ -61,6 +90,12 @@ class ServiciosView(discord.ui.View):
                                              lambda: self._refresh_view(interaction))
         await interaction.response.send_modal(modal)
 
+    # @discord.ui.button(label="Gestionar Precios Catering", style=discord.ButtonStyle.secondary, emoji="🍟")
+    # async def gestionar_precios_catering(self, interaction: discord.Interaction, _button: discord.ui.Button):
+    #
+    #     await interaction.response.send_message("Selecciona un producto:", view=CateringView(self.club_id),
+    #                                             ephemeral=True)
+
     @discord.ui.button(label="Mejorar Tienda", style=discord.ButtonStyle.primary, emoji="👕")
     async def mejorar_tienda(self, interaction: discord.Interaction, _button: discord.ui.Button):
         conn = get_connection()
@@ -73,14 +108,14 @@ class ServiciosView(discord.ui.View):
                                              lambda: self._refresh_view(interaction))
         await interaction.response.send_modal(modal)
 
-    @discord.ui.button(label="Gestionar Precios Camisetas de Todo el Club", style=discord.ButtonStyle.secondary, emoji="💰")
-    async def gestionar_precios(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        if not tiene_tienda_merchandising(self.club_id):
-            await interaction.response.send_message("❌ Debes construir la tienda primero.", ephemeral=True)
-            return
-
-        # Obtenemos la media real
-        media_club = obtener_media_titular(self.club_id)
-
-        # Pasamos la media real al modal
-        await interaction.response.send_modal(ConfigurarPrecioModal(self.club_id, media_club))
+    # @discord.ui.button(label="Gestionar Precios Camisetas de Todo el Club", style=discord.ButtonStyle.secondary, emoji="💰")
+    # async def gestionar_precios(self, interaction: discord.Interaction, _button: discord.ui.Button):
+    #     if not tiene_tienda_merchandising(self.club_id):
+    #         await interaction.response.send_message("❌ Debes construir la tienda primero.", ephemeral=True)
+    #         return
+    #
+    #     # Obtenemos la media real
+    #     media_club = obtener_media_titular(self.club_id)
+    #
+    #     # Pasamos la media real al modal
+    #     await interaction.response.send_modal(ConfigurarPrecioModal(self.club_id, media_club))
