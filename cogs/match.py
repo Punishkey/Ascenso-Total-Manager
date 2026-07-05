@@ -21,18 +21,23 @@ def registrar_evento_db(partido_id, jugador, equipo, tipo, minuto):
     conn.close()
 
 
-def procesar_fin_partido(club_id, goles_favor, goles_contra):
+def procesar_fin_partido(club_a_id, club_b_id, goles_favor, goles_contra):
     victoria = goles_favor > goles_contra
     base = BASE_POR_PARTIDO
     premio = BONUS_RESULTADO if victoria else 0
-    total_ingresos = base + premio
+    total_ingresos_a = base + premio
+    premio_rival = BONUS_RESULTADO if goles_contra > goles_favor else 0
+    total_ingresos_b = base + premio_rival
 
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("UPDATE clubes SET presupuesto = presupuesto + ? WHERE id = ?", (total_ingresos, club_id))
+    # Actualizar jugador
+    cursor.execute("UPDATE clubes SET presupuesto = presupuesto + ? WHERE id = ?", (total_ingresos_a, club_a_id))
+    # Actualizar IA
+    cursor.execute("UPDATE clubes SET presupuesto = presupuesto + ? WHERE id = ?", (total_ingresos_b, club_b_id))
     conn.commit()
     conn.close()
-    return total_ingresos
+    return total_ingresos_a
 
 
 async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b):
@@ -66,11 +71,14 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
         prob_a = media_a / (media_a + media_b)
         protagonista_a = random.random() < prob_a
 
+
         club_id = club_a_id if protagonista_a else club_b_id
         club_nombre = nombre_a if protagonista_a else nombre_b
 
         # Registro de ventas de catering
-        registrar_venta_catering(club_id, random.choice(productos_catering), cantidad=1)
+        from db.merch_queries import puede_vender, registrar_venta_catering
+        if puede_vender(club_id, 'catering'):
+            registrar_venta_catering(club_id, random.choice(productos_catering), cantidad=1)
 
         if protagonista_a:
             posesion_a += 1
@@ -134,7 +142,7 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
         await msg.edit(embed=embed)
 
     # --- Resumen Final ---
-    total_ingresos = procesar_fin_partido(club_a_id, goles_a, goles_b)
+    total_ingresos = procesar_fin_partido(club_a_id, club_b_id, goles_a, goles_b)
 
     conn = get_connection()
     cursor = conn.cursor()

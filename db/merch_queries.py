@@ -1,4 +1,4 @@
-from db.database import get_connection
+
 
 def actualizar_precio_camiseta(jugador_id, precio):
     conn = get_connection()
@@ -136,3 +136,13 @@ def obtener_niveles_servicios(club_id):
     res = cursor.fetchone()
     conn.close()
     return res if res else (0, 0)
+
+def puede_vender(club_id, tipo_servicio):
+    """tipo_servicio: 'catering' o 'tienda'"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    columna = "nivel_catering" if tipo_servicio == 'catering' else "nivel_tienda"
+    cursor.execute(f"SELECT {columna} FROM estadio_servicios WHERE club_id = ?", (club_id,))
+    res = cursor.fetchone()
+    conn.close()
+    return res and res[0] >= 1
