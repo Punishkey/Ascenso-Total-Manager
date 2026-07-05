@@ -20,6 +20,7 @@ class MenuServicios(discord.ui.Select):
         super().__init__(placeholder="Selecciona una acción...", options=options)
 
     async def callback(self, interaction: discord.Interaction):
+        # Nota: Aquí deberías añadir la lógica para config_catering/tienda
         if self.values[0] == "stats_catering":
             datos = obtener_ventas_catering(self.club_id)
             texto = "\n".join([f"🥤 {p}: {pre} {NOMBRE_MONEDA} | Ventas: {v}" for p, pre, v in datos])
@@ -40,8 +41,8 @@ class ServiciosView(discord.ui.View):
         super().__init__(timeout=60)
         self.club_id = club_id
         self.user_id = user_id
-        self.actualizar_estado_botones()
         self.add_item(MenuServicios(club_id, user_id))
+        self.actualizar_estado_botones()
 
     def actualizar_estado_botones(self):
         check_y_aplicar_mejora_servicio(self.club_id, 'nivel_catering')
@@ -58,16 +59,18 @@ class ServiciosView(discord.ui.View):
         tiempo_cat = obtener_tiempo_restante_construccion(self.club_id, 'catering')
         tiempo_tienda = obtener_tiempo_restante_construccion(self.club_id, 'tienda')
 
+        # Control catering
         if tiempo_cat and tiempo_cat != "FINALIZADO":
             self.mejorar_catering.disabled = True
-            self.mejorar_catering.label = "Construyendo..."
+            self.mejorar_catering.label = f"Catering ({tiempo_cat})"
         else:
             self.mejorar_catering.disabled = (cat >= 10)
             self.mejorar_catering.label = "Mejorar Catering"
 
+        # Control tienda
         if tiempo_tienda and tiempo_tienda != "FINALIZADO":
             self.mejorar_tienda.disabled = True
-            self.mejorar_tienda.label = "Construyendo..."
+            self.mejorar_tienda.label = f"Tienda ({tiempo_tienda})"
         else:
             self.mejorar_tienda.disabled = (tienda >= 10)
             self.mejorar_tienda.label = "Mejorar Tienda"
@@ -79,7 +82,11 @@ class ServiciosView(discord.ui.View):
 
     async def _refresh_view(self, interaction: discord.Interaction):
         self.actualizar_estado_botones()
-        await interaction.message.edit(embed=self.embed, view=self)
+        try:
+            # Usamos edit_message de la interacción para refrescar sin errores Forbidden
+            await interaction.response.edit_message(embed=self.embed, view=self)
+        except Exception as e:
+            print(f"⚠️ Error al refrescar: {e}")
 
     @discord.ui.button(label="Mejorar Catering", style=discord.ButtonStyle.primary, emoji="🌭")
     async def mejorar_catering(self, interaction: discord.Interaction, _button: discord.ui.Button):
@@ -89,8 +96,7 @@ class ServiciosView(discord.ui.View):
         nivel = cursor.fetchone()[0]
         conn.close()
 
-        modal = ConfirmarMejoraServicioModal(self.club_id, 'nivel_catering', nivel,
-                                             lambda: self._refresh_view(interaction))
+        modal = ConfirmarMejoraServicioModal(self.club_id, 'nivel_catering', nivel)
         await interaction.response.send_modal(modal)
 
     @discord.ui.button(label="Mejorar Tienda", style=discord.ButtonStyle.primary, emoji="👕")
@@ -101,6 +107,5 @@ class ServiciosView(discord.ui.View):
         nivel = cursor.fetchone()[0]
         conn.close()
 
-        modal = ConfirmarMejoraServicioModal(self.club_id, 'nivel_tienda', nivel,
-                                             lambda: self._refresh_view(interaction))
+        modal = ConfirmarMejoraServicioModal(self.club_id, 'nivel_tienda', nivel)
         await interaction.response.send_modal(modal)

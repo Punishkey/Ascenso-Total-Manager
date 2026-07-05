@@ -188,18 +188,22 @@ def check_y_aplicar_mejora_servicio(club_id, tipo_servicio):
     campo_fin = "fin_catering" if tipo_servicio == 'nivel_catering' else "fin_tienda"
     cursor.execute(f'SELECT {campo_fin}, {tipo_servicio} FROM estadio_servicios WHERE club_id = ?', (club_id,))
     res = cursor.fetchone()
-    if res and res[0]:
-        fecha_fin = datetime.fromisoformat(res[0])
-        if datetime.now() >= fecha_fin:
-            cursor.execute(f'''
-                UPDATE estadio_servicios 
-                SET {tipo_servicio} = {tipo_servicio} + 1, 
-                    {campo_fin} = NULL 
-                WHERE club_id = ?
-            ''', (club_id,))
+    if res and res[0] and res[0] != '<null>':
+        try:
+            fecha_fin = datetime.fromisoformat(res[0])
+            if datetime.now() >= fecha_fin:
+                cursor.execute(f'''
+                    UPDATE estadio_servicios 
+                    SET {tipo_servicio} = {tipo_servicio} + 1, 
+                        {campo_fin} = NULL 
+                    WHERE club_id = ?
+                ''', (club_id,))
+                conn.commit()
+                conn.close()
+                return True
+        except ValueError:
+            cursor.execute(f'UPDATE estadio_servicios SET {campo_fin} = NULL WHERE club_id = ?', (club_id,))
             conn.commit()
-            conn.close()
-            return True
     conn.close()
     return False
 

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from db.database import get_connection
 
 def obtener_info_club_y_estadio(user_id):
@@ -32,3 +34,22 @@ def tiene_tienda_merchandising(club_id):
     res = cursor.fetchone()
     conn.close()
     return res[0] > 0 if res and res[0] is not None else False
+
+
+def obtener_tiempo_restante(fecha_fin_str):
+    """
+    Recibe la fecha como string (ISO format) y devuelve el tiempo restante.
+    """
+    if not fecha_fin_str:
+        return None
+
+    fecha_fin = datetime.fromisoformat(fecha_fin_str)
+    ahora = datetime.now()
+
+    if ahora >= fecha_fin:
+        return "¡Listo!"
+
+    restante = fecha_fin - ahora
+    horas, rem = divmod(int(restante.total_seconds()), 3600)
+    minutos, _ = divmod(rem, 60)
+    return f"{horas}h {minutos}m"

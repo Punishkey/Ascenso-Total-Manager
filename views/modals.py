@@ -1,7 +1,7 @@
 import discord
 from config import NOMBRE_MONEDA, COSTE_MEJORA_SERVICIOS
 from db.estadio_queries import renombrar_estadio_db
-from db.merch_queries import actualizar_precio_tienda_club, actualizar_precio_individual
+from db.merch_queries import actualizar_precio_tienda_club, actualizar_precio_individual, actualizar_precio_producto_catering
 from db.club_queries import mejorar_servicio_db
 
 
@@ -22,10 +22,7 @@ class RenombrarEstadioModal(discord.ui.Modal, title="Renombrar Estadio"):
     async def on_submit(self, interaction: discord.Interaction):
         exito = renombrar_estadio_db(self.club_id, self.nuevo_nombre.value)
         if exito:
-            from views.estadio_view import EstadioView
-            view = EstadioView(self.club_id, interaction.user.id)
-            embed = view.actualizar_embed_inicial(self.club_id, interaction.user.id)
-            await interaction.response.edit_message(content=None, embed=embed, view=view)
+            await interaction.response.send_message("✅ Estadio renombrado con éxito.", ephemeral=True)
         else:
             await interaction.response.send_message("❌ Error al renombrar el estadio.", ephemeral=True)
 
@@ -70,13 +67,12 @@ class ConfigurarPrecioModal(discord.ui.Modal, title="Ajustar Precio de Camiseta"
 
 
 class ConfirmarMejoraServicioModal(discord.ui.Modal):
-    def __init__(self, club_id, tipo_servicio, nivel_actual, view_callback):
+    def __init__(self, club_id, tipo_servicio, nivel_actual):
         nombre_servicio = "Catering" if "catering" in tipo_servicio else "Tienda"
         super().__init__(title=f"Confirmar mejora de {nombre_servicio}")
 
         self.club_id = club_id
         self.tipo_servicio = tipo_servicio
-        self.view_callback = view_callback
 
         # Cálculo del coste: Nivel actual * Coste base definido en config
         self.coste_total = (nivel_actual + 1) * COSTE_MEJORA_SERVICIOS
@@ -92,8 +88,7 @@ class ConfirmarMejoraServicioModal(discord.ui.Modal):
         exito, mensaje = mejorar_servicio_db(self.club_id, self.tipo_servicio)
 
         if exito:
-            await interaction.response.send_message("🏗️ Obras iniciadas correctamente.", ephemeral=True)
-            await self.view_callback()
+            await interaction.response.send_message("🏗️ Obras iniciadas correctamente. Puedes cerrar esta ventana y refrescar el menú.", ephemeral=True)
         else:
             await interaction.response.send_message(f"❌ {mensaje}", ephemeral=True)
 
