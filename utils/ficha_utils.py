@@ -49,7 +49,7 @@ async def mostrar_ficha_jugador(interaction: discord.Interaction, club_id: int, 
     if estrella:
         embed.set_footer(text="⭐ Jugador Estrella")
 
-    view = FichaJugadorView(jugador_id, media)
+    view = FichaJugadorView(club_id, jugador_id, media)
 
     if interaction.response.is_done():
         await interaction.followup.send(embed=embed, view=view, ephemeral=True)
@@ -65,11 +65,25 @@ def obtener_icono_progreso(actual, base):
     return "➖"
 
 class FichaJugadorView(discord.ui.View):
-    def __init__(self, jugador_id, media):
+    def __init__(self, club_id, jugador_id, media):
         super().__init__(timeout=60)
+        self.club_id = club_id
         self.jugador_id = jugador_id
         self.media = media
 
     @discord.ui.button(label="💰 Configurar Precio", style=discord.ButtonStyle.primary, emoji="👕")
     async def configurar_precio(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        await interaction.response.send_modal(ConfigurarPrecioModal(self.jugador_id, self.media))
+        from db.estadio_queries import tiene_tienda_merchandising
+        nivel_tienda = tiene_tienda_merchandising(self.club_id)
+
+        if nivel_tienda < 1:
+            await interaction.response.send_message(
+                "❌ **Acceso denegado:** Necesitas tener la tienda de merchandising a nivel 1 como mínimo para configurar precios individuales.",
+                ephemeral=True
+            )
+            return
+
+            # Si el nivel es correcto, abrimos el modal
+        await interaction.response.send_modal(
+            ConfigurarPrecioModal(self.club_id, self.media, jugador_id=self.jugador_id)
+        )

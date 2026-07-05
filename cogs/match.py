@@ -5,16 +5,30 @@ from discord import app_commands
 from discord.ext import commands
 from config import EVENTOS_NARRATIVA
 from db.club_queries import obtener_nombre_club, obtener_rival_ia, obtener_club_id_por_usuario
+from db.database import get_connection
 from db.jugador_queries import obtener_media_titular, obtener_jugador_aleatorio
 from db.transaction_queries import registrar_resultado_partido
+
+
+def registrar_evento_db(partido_id, jugador, equipo, tipo, minuto):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('''INSERT INTO eventos_partido
+                          (partido_id, jugador_nombre, equipo_nombre, tipo_evento, minuto)
+                      VALUES (?, ?, ?, ?, ?)''', (partido_id, jugador, equipo, tipo, minuto))
+    conn.commit()
+    conn.close()
 
 
 async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b):
     media_a = obtener_media_titular(club_a_id)
     media_b = obtener_media_titular(club_b_id)
 
+    # Registrar partido inicial para obtener ID
+    partido_id_actual = registrar_resultado_partido(club_a_id, club_b_id, 0, 0)
+
     historial_jugadores = {}
-    estado_tarjetas = {}  # Inicializado fuera del bucle
+    estado_tarjetas = {}
     tarjetas_jugadores = []
     posesion_a = 0
     posesion_b = 0
@@ -28,15 +42,10 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
     goles_a = 0
     goles_b = 0
 
-    for minuto in [5, 10, 15, 20, 25, 30, 35, 40, 45,
-                   50, 55, 60, 65, 70, 75, 80, 85, 90]:
-        await asyncio.sleep(5)
+    for minuto in [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90]:
+        await asyncio.sleep(2)
 
-        tipo_evento = random.choices(
-            list(EVENTOS_NARRATIVA.keys()),
-            weights=[0.03, 0.12, 0.15, 0.10, 0.60]
-        )[0]
-
+        tipo_evento = random.choices(list(EVENTOS_NARRATIVA.keys()), weights=[0.03, 0.12, 0.15, 0.10, 0.60])[0]
         prob_a = media_a / (media_a + media_b)
         protagonista_a = random.random() < prob_a
 
@@ -50,43 +59,33 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
 
         jugador = obtener_jugador_aleatorio(club_id)
 
-        # Corrección: Incrementar historial siempre
         if jugador not in historial_jugadores:
             historial_jugadores[jugador] = {"equipo": club_nombre, "total": 0}
         historial_jugadores[jugador]["total"] += 1
 
-        texto = ""  # Inicializar variable de texto
-
+        texto = ""
         if tipo_evento == "tarjeta":
-            # Inicializar jugador en estado_tarjetas
-            if jugador not in estado_tarjetas:
-                estado_tarjetas[jugador] = {"amarillas": 0, "expulsado": False}
-
-            # Si ya fue expulsado, ignoramos el evento
-            if estado_tarjetas[jugador]["expulsado"]:
-                continue
+            if jugador not in estado_tarjetas: estado_tarjetas[jugador] = {"amarillas": 0, "expulsado": False}
+            if estado_tarjetas[jugador]["expulsado"]: continue
 
             es_roja_directa = random.random() < 0.2
-
             if es_roja_directa:
                 estado_tarjetas[jugador]["expulsado"] = True
-                tipo_tarjeta = "🟥"
-                nombre_tarjeta = "Roja"
+                tipo_tarjeta = "Roja"
+                icono = "🟥"
             else:
                 estado_tarjetas[jugador]["amarillas"] += 1
                 if estado_tarjetas[jugador]["amarillas"] >= 2:
                     estado_tarjetas[jugador]["expulsado"] = True
-                    tipo_tarjeta = "🟥"
-                    nombre_tarjeta = "Roja (por doble amarilla)"
+                    tipo_tarjeta = "Roja (doble amarilla)"
+                    icono = "🟥"
                 else:
-                    tipo_tarjeta = "🟨"
-                    nombre_tarjeta = "Amarilla"
+                    tipo_tarjeta = "Amarilla"
+                    icono = "🟨"
 
-            texto = f"{tipo_tarjeta} **{nombre_tarjeta}**: El árbitro amonesta a {jugador} del equipo {club_nombre}."
-
-            registro = f"{tipo_tarjeta} {nombre_tarjeta} | Min. {minuto}: {jugador} ({club_nombre})"
-            if registro not in tarjetas_jugadores:
-                tarjetas_jugadores.append(registro)
+            registrar_evento_db(partido_id_actual, jugador, club_nombre, tipo_tarjeta, minuto)
+            texto = f"{icono} **{tipo_tarjeta}**: El árbitro amonesta a {jugador} del equipo {club_nombre}."
+            tarjetas_jugadores.append(f"{icono} {tipo_tarjeta} | Min. {minuto}: {jugador} ({club_nombre})")
 
             if estado_tarjetas[jugador]["expulsado"]:
                 if protagonista_a:
@@ -95,9 +94,10 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
                     media_b -= 5
 
         elif tipo_evento == "gol":
-            frase = random.choice(EVENTOS_NARRATIVA[tipo_evento])
-            if random.random() < (media_a / (media_a + media_b) if protagonista_a else media_b / (media_a + media_b)):
+            if random.random() < (prob_a if protagonista_a else 1 - prob_a):
+                frase = random.choice(EVENTOS_NARRATIVA[tipo_evento])
                 texto = frase.format(jugador=jugador, equipo=club_nombre)
+                registrar_evento_db(partido_id_actual, jugador, club_nombre, "gol", minuto)
                 if protagonista_a:
                     goles_a += 1
                 else:
@@ -105,20 +105,24 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
             else:
                 texto = f"¡Gran ocasión de {jugador} del equipo {club_nombre}, pero el portero lo evita!"
         else:
-            # Eventos normales (falta, disputa, ocasion)
             frase = random.choice(EVENTOS_NARRATIVA[tipo_evento])
             texto = frase.format(jugador=jugador, equipo=club_nombre)
 
         embed.description = f"**Minuto {minuto}'**: {texto}"
         embed.set_field_at(0, name=nombre_a, value=f"Media: {media_a:.1f}\nGoles: {goles_a}", inline=True)
         embed.set_field_at(1, name=nombre_b, value=f"Media: {media_b:.1f}\nGoles: {goles_b}", inline=True)
-
         await msg.edit(embed=embed)
 
-    # Registro en BD
-    registrar_resultado_partido(club_a_id, club_b_id, goles_a, goles_b)
-
     # --- Resumen Final ---
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT jugador_nombre, minuto FROM eventos_partido WHERE partido_id = ? AND tipo_evento = 'gol'",
+                   (partido_id_actual,))
+    goleadores = cursor.fetchall()
+    conn.close()
+
+    texto_goles = "\n".join([f"⚽ Min. {m}: {j}" for j, m in goleadores]) if goleadores else "Sin goles"
+
     total_eventos = posesion_a + posesion_b
     porcentaje_a = int((posesion_a / total_eventos) * 100) if total_eventos > 0 else 50
     porcentaje_b = 100 - porcentaje_a
@@ -131,6 +135,7 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
     resumen_embed = discord.Embed(title="📊 Resumen del Partido", color=discord.Color.green())
     resumen_embed.add_field(name="Resultado Final", value=f"**{nombre_a} {goles_a} - {goles_b} {nombre_b}**",
                             inline=False)
+    resumen_embed.add_field(name="Goleadores", value=texto_goles, inline=False)
     resumen_embed.add_field(name="Posesión del balón",
                             value=f"{nombre_a}: {porcentaje_a}% | {nombre_b}: {porcentaje_b}%\n`{barra_posesion}`",
                             inline=False)
@@ -155,18 +160,17 @@ class MatchCog(commands.Cog):
     async def partido(self, interaction: discord.Interaction):
         user_id = interaction.user.id
         if user_id in self.jugadores_en_partido:
-            await interaction.response.send_message("❌ ¡Ya tienes un partido en curso! Espera a que termine.",
-                                                    ephemeral=True)
+            await interaction.response.send_message("❌ ¡Ya tienes un partido en curso!", ephemeral=True)
             return
 
         club_usuario_id = obtener_club_id_por_usuario(interaction.user.id)
         if not club_usuario_id:
-            await interaction.response.send_message("❌ Primero debes crear un club usando `/comenzar`.", ephemeral=True)
+            await interaction.response.send_message("❌ Primero debes crear un club.", ephemeral=True)
             return
 
         rival_data = obtener_rival_ia(club_usuario_id)
         if not rival_data:
-            await interaction.response.send_message("❌ No hay otros clubes disponibles para jugar.", ephemeral=True)
+            await interaction.response.send_message("❌ No hay otros clubes disponibles.", ephemeral=True)
             return
 
         rival_id, rival_nombre = rival_data
@@ -174,7 +178,6 @@ class MatchCog(commands.Cog):
 
         self.jugadores_en_partido.add(user_id)
         await interaction.response.defer()
-
         try:
             await simular_partido(interaction, club_usuario_id, club_usuario_nombre, rival_id, rival_nombre)
         finally:

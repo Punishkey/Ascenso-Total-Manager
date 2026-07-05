@@ -218,11 +218,9 @@ def calcular_ingresos_por_servicios(club_id, asistentes):
 
 
 def mejorar_servicio_db(club_id, tipo_servicio):
-    print("DEBUG BD: Iniciando conexión...")
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        print("DEBUG BD: Consultando estadio y servicios...")
         cursor.execute('SELECT nivel FROM estadios WHERE club_id = ?', (club_id,))
         res_estadio = cursor.fetchone()
         nivel_estadio = res_estadio[0] if res_estadio else 1
@@ -236,13 +234,11 @@ def mejorar_servicio_db(club_id, tipo_servicio):
 
         coste = COSTE_MEJORA_SERVICIOS + nivel_estadio
 
-        print(f"DEBUG BD: Verificando presupuesto (Coste: {coste})...")
         cursor.execute('SELECT presupuesto FROM clubes WHERE id = ?', (club_id,))
         res_presupuesto = cursor.fetchone()
         presupuesto = res_presupuesto[0] if res_presupuesto else 0
 
         if presupuesto >= coste:
-            print("DEBUG BD: Fondos OK, calculando tiempos...")
             duracion = timedelta(hours=TIEMPO_MEJORA_ESTADIO + nivel_actual)
             fecha_fin = (datetime.now() + duracion).isoformat()
             campo_fin = "fin_catering" if tipo_servicio == 'nivel_catering' else "fin_tienda"
@@ -250,16 +246,12 @@ def mejorar_servicio_db(club_id, tipo_servicio):
             cursor.execute('UPDATE clubes SET presupuesto = presupuesto - ? WHERE id = ?', (coste, club_id))
             cursor.execute(f'UPDATE estadio_servicios SET {campo_fin} = ? WHERE club_id = ?', (fecha_fin, club_id))
             conn.commit()
-            print("DEBUG BD: Update exitoso.")
             return True, "Obras iniciadas"
         else:
-            print("DEBUG BD: Fondos insuficientes.")
             return False, "Fondos insuficientes"
 
     except Exception as e:
-        print(f"DEBUG BD: ERROR CRÍTICO -> {e}")
         conn.rollback()
         return False, f"Error interno: {str(e)}"
     finally:
         conn.close()
-        print("DEBUG BD: Conexión cerrada.")

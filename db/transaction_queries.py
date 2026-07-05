@@ -25,12 +25,14 @@ def registrar_resultado_partido(club_id, rival_id, goles_propios, goles_rival):
                 """
         cursor.execute(query, (club_id, rival_id, goles_propios, goles_rival, resultado, datetime.now()))
 
+        nuevo_id = cursor.lastrowid
+
         conn.commit()
         conn.close()
-        return True
+        return nuevo_id
     except Exception as e:
         print(f"Error al guardar historial: {e}")
-        return False
+        return None
 
 
 def obtener_estadisticas_club(club_id):
