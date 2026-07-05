@@ -1,6 +1,9 @@
+from pathlib import Path
+
 import discord
 import os
 import asyncio
+
 import typing
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -40,25 +43,26 @@ async def load_extensions():
     """
     logging.info("Iniciando carga de extensiones (Cogs)...")
 
-    # Usamos os.path.join y globbing/filtrado mejor controlado
-    cogs_dir = './cogs'
-    if not os.path.isdir(cogs_dir):
+    cogs_dir = Path("./cogs")
+    if not cogs_dir.is_dir():
         logging.error(f"El directorio '{cogs_dir}' no se encontró.")
         return
 
-    for filename in os.listdir(cogs_dir):
-        if filename.endswith('.py') and filename != "__init__.py":
-            module_name = f'cogs.{filename[:-3]}'  # Crea el nombre de módulo (ej: cogs.players)
-            try:
-                # Intenta cargar la extensión dentro de un bloque try/except
-                await bot.load_extension(module_name)
-                logging.info(f'✅ Cog cargado exitosamente: {filename}')
-            except commands.ExtensionNotFound:
-                logging.warning(
-                    f"⚠️ Falló al encontrar el módulo '{module_name}'. Asegúrate de que la estructura sea correcta.")
-            except Exception as e:
-                # Este bloque captura errores internos del cog (sintaxis, etc.)
-                logging.error(f"❌ ERROR FATAL al cargar el Cog {filename}: {e}")
+    for file_path in cogs_dir.glob('*.py'):  # Usamos glob para encontrar todos los *.py
+        if file_path.name != "__init__.py":
+            continue
+        filename = file_path.name[:-3]
+        module_name = f'cogs.{filename}'
+
+        try:
+            await bot.load_extension(module_name)
+            logging.info(f'✅ Cog cargado exitosamente: {file_path.name}')
+        except commands.ExtensionNotFound:
+            logging.warning(
+                f"⚠️ Falló al encontrar el módulo '{module_name}'. Asegúrate de que la estructura sea correcta.")
+        except Exception as e:
+            # Este bloque captura errores internos del cog (sintaxis, etc.)
+            logging.error(f"❌ ERROR FATAL al cargar el Cog {file_path.name}: {e}")
 
 
 @bot.event
