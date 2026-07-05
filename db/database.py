@@ -20,18 +20,16 @@ def init_db():
                       velocidad INTEGER, resistencia INTEGER, anticipacion INTEGER, serenidad INTEGER,
                       trabajo_equipo INTEGER, precision_pases INTEGER, control_balon INTEGER,
                       profesionalidad INTEGER, potencial INTEGER, valor INTEGER, es_estrella BOOLEAN DEFAULT 0, FOREIGN KEY (club_id) REFERENCES clubes(id))''')
+    # Tabla de posiciones
     cursor.execute('''CREATE TABLE IF NOT EXISTS posiciones 
                       (id INTEGER PRIMARY KEY, abreviatura TEXT UNIQUE, nombre_completo TEXT)''')
-    # Crear tabla de posiciones
-    cursor.execute('''CREATE TABLE IF NOT EXISTS posiciones
-                      (id INTEGER PRIMARY KEY, abreviatura TEXT, nombre_completo TEXT)''')
     # Crear tabla historial de partidos
     cursor.execute('''CREATE TABLE IF NOT EXISTS historial_partidos
                       (id INTEGER PRIMARY KEY AUTOINCREMENT, club_id INTEGER, rival_id INTEGER, goles_propios INTEGER,goles_rival INTEGER, es_victoria INTEGER, fecha DATETIME, resultado INTEGER DEFAULT 0)''')
     # Crear tabla fichajes
     cursor.execute('''CREATE TABLE IF NOT EXISTS fichajes 
                       (id INTEGER PRIMARY KEY AUTOINCREMENT, jugador_id INTEGER, club_vendedor_id INTEGER, precio INTEGER, fecha_publicacion DATETIME, FOREIGN KEY (jugador_id) REFERENCES jugadores(id), FOREIGN KEY (club_vendedor_id) REFERENCES clubes(id))''')
-    # Crear tabla historial Jugadores (Jugadores originales con sus stats originales desde el inicio)
+    # Crear tabla historial Jugadores
     cursor.execute('''CREATE TABLE IF NOT EXISTS historico_jugadores 
                       (id INTEGER PRIMARY KEY AUTOINCREMENT, jugador_id INTEGER, nombre TEXT, numero INTEGER, posicion_id TEXT, edad INTEGER, velocidad_base INTEGER, resistencia_base INTEGER, anticipacion_base INTEGER, serenidad_base INTEGER, trabajo_equipo_base INTEGER, precision_pases_base INTEGER, control_balon_base INTEGER, profesionalidad_base INTEGER, FOREIGN KEY(jugador_id) REFERENCES jugadores(id));''')
     # Crear tabla servicios del estadio
@@ -42,7 +40,7 @@ def init_db():
     # Crear tabla eventos partido
     cursor.execute('''CREATE TABLE IF NOT EXISTS eventos_partido (id INTEGER PRIMARY KEY AUTOINCREMENT, partido_id INTEGER, jugador_nombre TEXT, equipo_nombre TEXT, tipo_evento TEXT, minuto INTEGER);''')
     # Crear tabla catering precios
-    cursor.execute('''CREATE TABLE IF NOT EXISTS catering_precios (club_id INTEGER NOT NULL, producto TEXT NOT NULL, precio REAL NOT NULL, ventas_totales, PRIMARY KEY (club_id, producto), FOREIGN KEY (club_id) REFERENCES clubes(id) ON DELETE CASCADE);''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS catering_precios (club_id INTEGER NOT NULL, producto TEXT NOT NULL, precio REAL NOT NULL, ventas_totales INTEGER DEFAULT 0, PRIMARY KEY (club_id, producto), FOREIGN KEY (club_id) REFERENCES clubes(id) ON DELETE CASCADE);''')
 
 
     # Comprobar si está vacía antes de insertar
@@ -57,5 +55,4 @@ def init_db():
 
     conn.commit()
     conn.close()
-
     print("Base de datos inicializada correctamente.")

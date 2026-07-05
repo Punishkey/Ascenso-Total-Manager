@@ -1,7 +1,6 @@
 import discord
-
 from config import NOMBRE_MONEDA
-from db.merch_queries import actualizar_precio_producto_catering, obtener_precios_catering
+from db.merch_queries import actualizar_precio_producto_catering
 
 class SelectProducto(discord.ui.Select):
     def __init__(self, club_id):
@@ -14,8 +13,7 @@ class SelectProducto(discord.ui.Select):
         super().__init__(placeholder="Selecciona producto a modificar", options=options)
 
     async def callback(self, interaction: discord.Interaction):
-        producto = self.values[0]
-        await interaction.response.send_modal(ModalPrecioCatering(self.club_id, producto))
+        await interaction.response.send_modal(ModalPrecioCatering(self.club_id, self.values[0]))
 
 class ModalPrecioCatering(discord.ui.Modal, title="Configurar Precio"):
     def __init__(self, club_id, producto):

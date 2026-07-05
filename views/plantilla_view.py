@@ -58,8 +58,8 @@ class PlantillaPaginator(discord.ui.View):
 
     def update_buttons(self):
         if self.total_pages < 0: return
-        self.children[1].disabled = (self.page == 0)  # Anterior
-        self.children[2].disabled = (self.page >= self.total_pages)  # Siguiente
+        self.anterior.disabled = (self.page == 0)
+        self.siguiente.disabled = (self.page >= self.total_pages)
 
     @discord.ui.button(label="⬅️ Volver a Estadio", style=discord.ButtonStyle.primary, row=1)
     async def volver_estadio(self, interaction: discord.Interaction, _button: discord.ui.Button):

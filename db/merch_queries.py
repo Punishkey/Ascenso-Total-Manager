@@ -102,3 +102,37 @@ def obtener_ventas_tienda(club_id):
     conn.close()
     return res # Devuelve [('Nombre Jugador', 50.0, 10), ...]
 
+from db.database import get_connection
+
+# --- Ventas de Camisetas ---
+def registrar_venta_camiseta(jugador_id, cantidad=1):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE merchandising_jugadores 
+        SET ventas_totales = ventas_totales + ? 
+        WHERE jugador_id = ?
+    ''', (cantidad, jugador_id))
+    conn.commit()
+    conn.close()
+
+# --- Ventas de Catering ---
+def registrar_venta_catering(club_id, producto, cantidad=1):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE catering_precios 
+        SET ventas_totales = ventas_totales + ? 
+        WHERE club_id = ? AND producto = ?
+    ''', (cantidad, club_id, producto))
+    conn.commit()
+    conn.close()
+
+# --- Obtención de Niveles (Añadir a db/club_queries.py) ---
+def obtener_niveles_servicios(club_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT nivel_catering, nivel_tienda FROM estadio_servicios WHERE club_id = ?', (club_id,))
+    res = cursor.fetchone()
+    conn.close()
+    return res if res else (0, 0)

@@ -15,24 +15,15 @@ class MercadoView(discord.ui.View):
             return discord.Embed(title="🛒 Mercado", description="Vacío.", color=discord.Color.red())
 
         try:
-            # Diccionario de mapeo de posiciones
-
             mapeo_posiciones = {
-                "1": "POR",
-                "2": "DFC",
-                "3": "MCD",
-                "4": "MC",
-                "5": "EXT",
-                "6": "DC"
+                "1": "POR", "2": "DFC", "3": "MCD", "4": "MC", "5": "EXT", "6": "DC"
             }
 
             fichaje = self.jugadores[self.current_page]
             fichaje_id, nombre, pos, precio, club, media = fichaje
 
-            # Convertimos el ID de posición a texto, o dejamos el número si no existe en el diccionario
             nombre_posicion = mapeo_posiciones.get(str(pos), str(pos))
 
-            # Formateo seguro
             nombre_display = nombre if nombre else "Jugador Desconocido"
             media_display = f"{media:.1f}" if media is not None else "0.0"
 
@@ -45,7 +36,6 @@ class MercadoView(discord.ui.View):
             return embed
 
         except Exception as e:
-            print(f"❌ ERROR CRÍTICO en get_embed: {e}")
             return discord.Embed(title="Error", description=f"Error en datos: {e}", color=discord.Color.red())
 
     @discord.ui.button(label="◀️", style=discord.ButtonStyle.primary, row=0)
@@ -57,9 +47,8 @@ class MercadoView(discord.ui.View):
     @discord.ui.button(label="Comprar", style=discord.ButtonStyle.green, row=1)
     async def comprar(self, interaction: discord.Interaction, _button: discord.ui.Button):
         from db.club_queries import obtener_club_id_por_usuario
-
         comprador_club_id = obtener_club_id_por_usuario(interaction.user.id)
-        # Validación extra: si no tiene club
+
         if not comprador_club_id:
             await interaction.response.send_message("❌ No tienes un club registrado.", ephemeral=True)
             return
@@ -68,11 +57,8 @@ class MercadoView(discord.ui.View):
         exito, mensaje = ejecutar_compra(fichaje_id, comprador_club_id)
 
         if exito:
-            # Recargamos mercado
             self.jugadores = obtener_jugadores_en_mercado()
             self.current_page = 0
-
-            # Si el mercado se quedó vacío, editamos para avisar
             if not self.jugadores:
                 await interaction.response.edit_message(content="🛒 El mercado se ha quedado vacío.", embed=None,
                                                         view=None)
@@ -96,30 +82,23 @@ class MercadoView(discord.ui.View):
     async def mis_ventas(self, interaction: discord.Interaction, _button: discord.ui.Button):
         from db.club_queries import obtener_club_id_por_usuario
         club_id = obtener_club_id_por_usuario(interaction.user.id)
-
         ventas = obtener_jugadores_en_venta_del_club(club_id)
         if not ventas:
             await interaction.response.send_message("❌ No tienes ningún jugador en venta.", ephemeral=True)
             return
-
         await interaction.response.send_message("Selecciona qué jugador quieres retirar:",
                                                 view=RetirarVentaView(club_id), ephemeral=True)
 
     @discord.ui.button(label="Volver al Estadio", style=discord.ButtonStyle.secondary, row=2)
-    async def volver_estadio(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def volver_estadio(self, interaction: discord.Interaction, _button: discord.ui.Button):
         from views.estadio_view import EstadioView
-
-        # Obtenemos el club_id necesario para EstadioView
         from db.club_queries import obtener_club_id_por_usuario
+
         club_id = obtener_club_id_por_usuario(interaction.user.id)
-
-        # Creamos la vista del estadio
         view = EstadioView(club_id, interaction.user.id)
-
-        # Volvemos a mostrar el embed inicial del estadio
         await interaction.response.edit_message(
             content=None,
-            embed=view.actualizar_embed_inicial(),
+            embed=view.actualizar_embed_inicial(club_id, interaction.user.id),
             view=view
         )
 
@@ -133,8 +112,6 @@ class VenderJugadorModal(discord.ui.Modal, title="Vender Jugador"):
         from db.mercado_queries import publicar_jugador
 
         club_id = club_queries.obtener_club_id_por_usuario(interaction.user.id)
-
-        # Validar dorsal y precio
         try:
             dorsal_val = int(self.dorsal.value)
             precio_val = int(self.precio.value)
@@ -147,7 +124,6 @@ class VenderJugadorModal(discord.ui.Modal, title="Vender Jugador"):
             await interaction.response.send_message("❌ No tienes ningún jugador con ese dorsal.", ephemeral=True)
             return
 
-        # jugador[0] es ID, jugador[1] es nombre
         if publicar_jugador(jugador[0], club_id, precio_val):
             await interaction.response.send_message(f"✅ ¡{jugador[1]} puesto en el mercado!", ephemeral=True)
         else:

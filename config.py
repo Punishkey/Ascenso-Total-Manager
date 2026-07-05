@@ -67,5 +67,8 @@ EVENTOS_NARRATIVA = {
     ]
 }
 
+BONUS_RESULTADO = 100
+BASE_POR_PARTIDO = 200
+
 # Prefijo del bot
 PREFIX = '/'

@@ -39,17 +39,15 @@ class EstadioSelect(discord.ui.Select):
             embed.add_field(name="Estado Actual", value=f"Nivel {nivel_actual} | {capacidad_actual} asientos",
                             inline=False)
             embed.add_field(name="Tras la Mejora",
-                            value=f"Nivel {nivel_actual + 1} | {capacidad_actual + CAPACIDAD_POR_NIVEL} asientos", inline=False)
+                            value=f"Nivel {nivel_actual + 1} | {capacidad_actual + CAPACIDAD_POR_NIVEL} asientos",
+                            inline=False)
             embed.add_field(name="💰 Coste", value=f"{coste} {NOMBRE_MONEDA}", inline=False)
 
             await interaction.response.edit_message(embed=embed, view=ConfirmacionMejoraView(self.club_id, coste))
 
         elif self.values[0] == "servicios":
             view = ServiciosView(self.club_id, self.user_id)
-            await interaction.response.edit_message(
-                embed=view.embed,
-                view=view
-            )
+            await interaction.response.edit_message(embed=view.embed, view=view)
 
         elif self.values[0] == "plantilla":
             view = PlantillaPaginator(self.club_id, interaction.user.id)
@@ -61,9 +59,7 @@ class EstadioSelect(discord.ui.Select):
 
         elif self.values[0] == "mercado":
             from views.mercado_view import MercadoView
-
             view = MercadoView(interaction.user.id)
-
             if not view.jugadores:
                 await interaction.response.send_message("🛒 El mercado de fichajes está vacío.", ephemeral=True)
             else:
@@ -92,28 +88,21 @@ class EstadioView(discord.ui.View):
         self.user_id = user_id
         self.add_item(EstadioSelect(club_id, user_id))
 
-
     def actualizar_embed_inicial(self, club_id, user_id):
-        # Recargamos info fresca de BD
+        check_y_aplicar_mejora(club_id)
         info = obtener_info_club_y_estadio(user_id)
         stats = obtener_estadisticas_club(club_id)
         nombre_club, presupuesto, nombre_estadio, nivel, capacidad = info
         tiempo_restante = obtener_tiempo_restante_construccion(club_id)
-        check_y_aplicar_mejora(club_id)
-        info = obtener_info_club_y_estadio(user_id)
-
 
         embed = discord.Embed(title=f"🏟️ Información de {nombre_club}", color=discord.Color.blue())
         embed.add_field(name="💰 Presupuesto", value=f"{presupuesto} {NOMBRE_MONEDA}", inline=False)
         embed.add_field(name="📍 Nombre del Estadio", value=nombre_estadio, inline=True)
         embed.add_field(name="⭐ Nivel", value=str(nivel), inline=True)
         embed.add_field(name="👥 Capacidad", value=f"{capacidad} asientos", inline=True)
-        if tiempo_restante:
-            if tiempo_restante == "FINALIZADO":
-                embed.add_field(name="✅ Estado", value="Construcción finalizada. ¡Disfruta tus mejoras!", inline=False)
-            else:
-                embed.add_field(name="🏗️ En Construcción", value=f"Tiempo restante: **{tiempo_restante}**",
-                                inline=False)
+
+        if tiempo_restante and tiempo_restante != "FINALIZADO":
+            embed.add_field(name="🏗️ En Construcción", value=f"Tiempo restante: **{tiempo_restante}**", inline=False)
 
         historial_str = (
             f"✅ Victorias: {stats.get('victorias', 0)}\n"

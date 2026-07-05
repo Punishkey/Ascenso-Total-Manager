@@ -4,7 +4,8 @@ from utils.generator import (obtener_estructura_plantilla,
                              generar_dorsales_disponibles)
 from db.jugador_queries import insertar_jugador_en_cursor
 from config import (PRESUPUESTO_INICIAL, NIVEL_INICIAL, CAPACIDAD_INICIAL,
-                    COSTE_MEJORA_ESTADIO, COSTE_MEJORA_SERVICIOS, NIVEL_MAXIMO_MEJORA_SERVICIOS, TIEMPO_MEJORA_ESTADIO)
+                    COSTE_MEJORA_ESTADIO, COSTE_MEJORA_SERVICIOS, NIVEL_MAXIMO_MEJORA_SERVICIOS, TIEMPO_MEJORA_ESTADIO,
+                    BONUS_RESULTADO, BASE_POR_PARTIDO)
 from datetime import datetime, timedelta
 
 
@@ -255,3 +256,40 @@ def mejorar_servicio_db(club_id, tipo_servicio):
         return False, f"Error interno: {str(e)}"
     finally:
         conn.close()
+
+
+def procesar_ingresos_partido(club_id, goles_favor, goles_contra, victoria):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Base fija por jugar el partido
+    ingresos = BASE_POR_PARTIDO
+
+    # Bonus por resultado
+    if victoria:
+        ingresos += BONUS_RESULTADO
+
+    # Sumamos ingresos por merchandising y catering (si existen funciones de suma)
+    # Aquí puedes llamar a tus funciones: obtener_total_ingresos_tienda(club_id) + ...
+
+    # Actualizar presupuesto del club
+    cursor.execute("UPDATE clubes SET presupuesto = presupuesto + ? WHERE id = ?", (ingresos, club_id))
+    conn.commit()
+    conn.close()
+    return ingresos
+
+def obtener_nivel_catering(club_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT nivel_catering FROM estadio_servicios WHERE club_id = ?', (club_id,))
+    resultado = cursor.fetchone()
+    conn.close()
+    return resultado[0] if resultado else 0
+
+def obtener_niveles_servicios(club_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT nivel_catering, nivel_tienda FROM estadio_servicios WHERE club_id = ?', (club_id,))
+    res = cursor.fetchone()
+    conn.close()
+    return res if res else (0, 0) # Devuelve (nivel_catering, nivel_tienda)

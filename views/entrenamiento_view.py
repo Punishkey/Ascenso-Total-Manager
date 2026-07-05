@@ -1,5 +1,4 @@
 import discord
-
 from config import COSTE_ENTRENAMIENTO, NOMBRE_MONEDA
 from db.jugador_queries import obtener_lista_jugadores, entrenar_atributo, obtener_jugador_por_numero, puede_mejorar
 from db.club_queries import obtener_presupuesto, restar_dinero
@@ -12,25 +11,24 @@ class EntrenamientoView(discord.ui.View):
         self.user_id = user_id
         self.tipo_seleccionado = None
         self.dorsal_seleccionado = None
-
         self.add_item(TipoEntrenamientoSelect(self))
         self.add_item(JugadorEntrenamientoSelect(club_id, self))
         self.add_item(BotonEntrenar(self))
-        self.add_item(BotonVolverEstadio(self.club_id, self.user_id))
+        self.add_item(BotonVolverEstadio(club_id, user_id))
 
 
 class TipoEntrenamientoSelect(discord.ui.Select):
     def __init__(self, parent_view):
         self.parent_view = parent_view
         options = [
-            discord.SelectOption(label="Físico: Velocidad", value="velocidad"),
-            discord.SelectOption(label="Físico: Resistencia", value="resistencia"),
-            discord.SelectOption(label="Técnico: Pase", value="precision_pases"),
-            discord.SelectOption(label="Técnico: Control", value="control_balon"),
-            discord.SelectOption(label="Mental: Anticipación", value="anticipacion"),
-            discord.SelectOption(label="Mental: Serenidad", value="serenidad"),
-            discord.SelectOption(label="Mental: Trabajo Equipo", value="trabajo_equipo"),
-            discord.SelectOption(label="Mental: Profesionalidad", value="profesionalidad")
+            discord.SelectOption(label="Velocidad", value="velocidad"),
+            discord.SelectOption(label="Resistencia", value="resistencia"),
+            discord.SelectOption(label="Pase", value="precision_pases"),
+            discord.SelectOption(label="Control", value="control_balon"),
+            discord.SelectOption(label="Anticipación", value="anticipacion"),
+            discord.SelectOption(label="Serenidad", value="serenidad"),
+            discord.SelectOption(label="Trabajo Equipo", value="trabajo_equipo"),
+            discord.SelectOption(label="Profesionalidad", value="profesionalidad")
         ]
         super().__init__(placeholder="Tipo de mejora...", options=options, row=0)
 
@@ -55,51 +53,28 @@ class JugadorEntrenamientoSelect(discord.ui.Select):
 class BotonEntrenar(discord.ui.Button):
     def __init__(self, parent_view):
         self.parent_view = parent_view
-        self.procesando = False
-        super().__init__(label=f"¡Entrenar ahora! ({COSTE_ENTRENAMIENTO} {NOMBRE_MONEDA})", style=discord.ButtonStyle.green, row=2)
+        super().__init__(label=f"¡Entrenar! ({COSTE_ENTRENAMIENTO} {NOMBRE_MONEDA})", style=discord.ButtonStyle.green,
+                         row=2)
 
     async def callback(self, interaction: discord.Interaction):
-        # Evitar doble clic
-        if self.procesando:
-            return
-
-        # Validación inicial
         if not self.parent_view.tipo_seleccionado or not self.parent_view.dorsal_seleccionado:
-            await interaction.response.send_message("❌ Selecciona tipo y jugador primero.", ephemeral=True)
+            await interaction.response.send_message("❌ Selecciona tipo y jugador.", ephemeral=True)
             return
 
-        self.procesando = True
-
-        # Verificar presupuesto
         if obtener_presupuesto(self.parent_view.club_id) < COSTE_ENTRENAMIENTO:
-            await interaction.response.send_message(f"❌ No tienes suficientes monedas. Necesitas {COSTE_ENTRENAMIENTO}.",
-                                                    ephemeral=True)
-            self.procesando = False
+            await interaction.response.send_message("❌ Presupuesto insuficiente.", ephemeral=True)
             return
 
-        # Obtener datos y VALIDAR desarrollo (Regla de Potencial/Edad)
         jugador_data = obtener_jugador_por_numero(self.parent_view.club_id, self.parent_view.dorsal_seleccionado)
-        if not jugador_data:
-            await interaction.response.send_message("❌ Error: No se encontró el jugador.", ephemeral=True)
-            self.procesando = False
-            return
-
-        # Comprobación de límites de crecimiento
         es_posible, mensaje = puede_mejorar(jugador_data, self.parent_view.tipo_seleccionado)
+
         if not es_posible:
             await interaction.response.send_message(f"❌ {mensaje}", ephemeral=True)
-            self.procesando = False
             return
 
-        # Ejecutar mejora
-        jugador_id = jugador_data[0]
         restar_dinero(self.parent_view.club_id, COSTE_ENTRENAMIENTO)
-        entrenar_atributo(jugador_id, self.parent_view.tipo_seleccionado, 1)
-
-        await interaction.response.send_message(
-            f"✅ ¡Entrenamiento completado! El jugador ha mejorado su atributo {self.parent_view.tipo_seleccionado.replace('_', ' ')}.",
-            ephemeral=True)
-        self.procesando = False
+        entrenar_atributo(jugador_data[0], self.parent_view.tipo_seleccionado, 1)
+        await interaction.response.send_message("✅ Entrenamiento completado.", ephemeral=True)
 
 
 class BotonVolverEstadio(discord.ui.Button):
@@ -108,15 +83,9 @@ class BotonVolverEstadio(discord.ui.Button):
         self.club_id = club_id
         self.user_id = user_id
 
-
     async def callback(self, interaction: discord.Interaction):
         from views.estadio_view import EstadioView
-
         view = EstadioView(self.club_id, self.user_id)
-        embed = view.actualizar_embed_inicial(self.club_id, self.user_id)
-
-        await interaction.response.edit_message(
-            content=None,
-            embed=embed,
-            view=view
-        )
+        await interaction.response.edit_message(content=None,
+                                                embed=view.actualizar_embed_inicial(self.club_id, self.user_id),
+                                                view=view)

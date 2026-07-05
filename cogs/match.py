@@ -3,11 +3,12 @@ import discord
 import random
 from discord import app_commands
 from discord.ext import commands
-from config import EVENTOS_NARRATIVA
+from config import EVENTOS_NARRATIVA, NOMBRE_MONEDA, BASE_POR_PARTIDO, BONUS_RESULTADO
 from db.club_queries import obtener_nombre_club, obtener_rival_ia, obtener_club_id_por_usuario
 from db.database import get_connection
 from db.jugador_queries import obtener_media_titular, obtener_jugador_aleatorio
 from db.transaction_queries import registrar_resultado_partido
+from db.merch_queries import registrar_venta_catering
 
 
 def registrar_evento_db(partido_id, jugador, equipo, tipo, minuto):
@@ -18,6 +19,20 @@ def registrar_evento_db(partido_id, jugador, equipo, tipo, minuto):
                       VALUES (?, ?, ?, ?, ?)''', (partido_id, jugador, equipo, tipo, minuto))
     conn.commit()
     conn.close()
+
+
+def procesar_fin_partido(club_id, goles_favor, goles_contra):
+    victoria = goles_favor > goles_contra
+    base = BASE_POR_PARTIDO
+    premio = BONUS_RESULTADO if victoria else 0
+    total_ingresos = base + premio
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE clubes SET presupuesto = presupuesto + ? WHERE id = ?", (total_ingresos, club_id))
+    conn.commit()
+    conn.close()
+    return total_ingresos
 
 
 async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b):
@@ -42,8 +57,10 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
     goles_a = 0
     goles_b = 0
 
+    productos_catering = ["bebida", "patatas", "bocadillo"]
+
     for minuto in [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90]:
-        await asyncio.sleep(2)
+        await asyncio.sleep(3)
 
         tipo_evento = random.choices(list(EVENTOS_NARRATIVA.keys()), weights=[0.03, 0.12, 0.15, 0.10, 0.60])[0]
         prob_a = media_a / (media_a + media_b)
@@ -51,6 +68,9 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
 
         club_id = club_a_id if protagonista_a else club_b_id
         club_nombre = nombre_a if protagonista_a else nombre_b
+
+        # Registro de ventas de catering
+        registrar_venta_catering(club_id, random.choice(productos_catering), cantidad=1)
 
         if protagonista_a:
             posesion_a += 1
@@ -63,7 +83,7 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
             historial_jugadores[jugador] = {"equipo": club_nombre, "total": 0}
         historial_jugadores[jugador]["total"] += 1
 
-        texto = ""
+
         if tipo_evento == "tarjeta":
             if jugador not in estado_tarjetas: estado_tarjetas[jugador] = {"amarillas": 0, "expulsado": False}
             if estado_tarjetas[jugador]["expulsado"]: continue
@@ -114,6 +134,8 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
         await msg.edit(embed=embed)
 
     # --- Resumen Final ---
+    total_ingresos = procesar_fin_partido(club_a_id, goles_a, goles_b)
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT jugador_nombre, minuto FROM eventos_partido WHERE partido_id = ? AND tipo_evento = 'gol'",
@@ -135,6 +157,7 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
     resumen_embed = discord.Embed(title="📊 Resumen del Partido", color=discord.Color.green())
     resumen_embed.add_field(name="Resultado Final", value=f"**{nombre_a} {goles_a} - {goles_b} {nombre_b}**",
                             inline=False)
+    resumen_embed.add_field(name="Ingresos del Partido", value=f"💰 +{total_ingresos} {NOMBRE_MONEDA}", inline=False)
     resumen_embed.add_field(name="Goleadores", value=texto_goles, inline=False)
     resumen_embed.add_field(name="Posesión del balón",
                             value=f"{nombre_a}: {porcentaje_a}% | {nombre_b}: {porcentaje_b}%\n`{barra_posesion}`",

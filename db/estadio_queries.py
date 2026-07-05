@@ -31,5 +31,4 @@ def tiene_tienda_merchandising(club_id):
     cursor.execute('SELECT nivel_tienda FROM estadio_servicios WHERE club_id = ?', (club_id,))
     res = cursor.fetchone()
     conn.close()
-    # Si res es None o el nivel es 0, devuelve False. Si es > 0, devuelve True.
     return res[0] > 0 if res and res[0] is not None else False
