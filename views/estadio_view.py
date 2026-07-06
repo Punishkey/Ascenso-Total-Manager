@@ -112,3 +112,19 @@ class EstadioView(discord.ui.View):
         )
         embed.add_field(name="🏆 Historial de Partidos", value=historial_str, inline=False)
         return embed
+
+
+class VolverEstadioView(discord.ui.View):
+    def __init__(self, club_id, user_id):
+        super().__init__(timeout=None)
+        self.club_id = club_id
+        self.user_id = user_id
+
+    @discord.ui.button(label="Volver al Estadio", style=discord.ButtonStyle.secondary, emoji="🏟️")
+    async def volver(self, interaction: discord.Interaction, _button: discord.ui.Button):
+
+        # Refrescamos la vista principal
+        view = EstadioView(self.club_id, self.user_id)
+        embed = view.actualizar_embed_inicial(self.club_id, self.user_id)
+
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)

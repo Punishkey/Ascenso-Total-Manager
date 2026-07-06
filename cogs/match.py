@@ -8,6 +8,7 @@ from db.club_queries import obtener_nombre_club, obtener_rival_ia, obtener_club_
 from db.database import get_connection
 from db.jugador_queries import obtener_media_titular, obtener_jugador_aleatorio, obtener_id_jugador_aleatorio
 from db.transaction_queries import registrar_resultado_partido
+from views.estadio_view import VolverEstadioView
 
 
 def registrar_evento_db(partido_id, jugador, equipo, tipo, minuto):
@@ -78,6 +79,7 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
         # Multiplicador por minuto: aumenta la demanda a medida que se acerca el final
         factor_tiempo = (minuto / 90) + 0.5  # De 0.5 a 1.5 veces el consumo
 
+        tipo_evento = random.choices(list(EVENTOS_NARRATIVA.keys()), weights=[0.03, 0.12, 0.15, 0.10, 0.60])[0]
         # Multiplicador por tipo de evento: la emoción vende más
         if tipo_evento == "gol":
             factor_evento = 2.0  # La gente consume el doble en un gol
@@ -89,7 +91,6 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
         # Calculamos la probabilidad de venta real
         probabilidad_venta = 0.4 * factor_tiempo * factor_evento
 
-        tipo_evento = random.choices(list(EVENTOS_NARRATIVA.keys()), weights=[0.03, 0.12, 0.15, 0.10, 0.60])[0]
         prob_a = media_a / (media_a + media_b)
         protagonista_a = random.random() < prob_a
 
@@ -232,7 +233,8 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
     else:
         resumen_embed.add_field(name="Tarjetas Mostradas", value="Partido limpio.", inline=False)
 
-    await interaction.followup.send(embed=resumen_embed)
+    view_final = VolverEstadioView(club_a_id, interaction.user.id)
+    await interaction.followup.send(embed=resumen_embed, view=view_final)
 
 
 class MatchCog(commands.Cog):
