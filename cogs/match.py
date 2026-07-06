@@ -75,6 +75,20 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
     for minuto in [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90]:
         await asyncio.sleep(3)
 
+        # Multiplicador por minuto: aumenta la demanda a medida que se acerca el final
+        factor_tiempo = (minuto / 90) + 0.5  # De 0.5 a 1.5 veces el consumo
+
+        # Multiplicador por tipo de evento: la emoción vende más
+        if tipo_evento == "gol":
+            factor_evento = 2.0  # La gente consume el doble en un gol
+        elif tipo_evento == "tarjeta":
+            factor_evento = 1.2
+        else:
+            factor_evento = 1.0
+
+        # Calculamos la probabilidad de venta real
+        probabilidad_venta = 0.4 * factor_tiempo * factor_evento
+
         tipo_evento = random.choices(list(EVENTOS_NARRATIVA.keys()), weights=[0.03, 0.12, 0.15, 0.10, 0.60])[0]
         prob_a = media_a / (media_a + media_b)
         protagonista_a = random.random() < prob_a
@@ -86,20 +100,28 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b)
         from db.merch_queries import puede_vender, registrar_venta_catering, registrar_venta_camiseta, \
             obtener_precio_camiseta
 
-        # Catering
+        # --- Catering ---
         if puede_vender(club_id, 'catering'):
-            prod = random.choice(productos_catering)
-            registrar_venta_catering(club_id, prod, cantidad=1)
-            if club_id == club_a_id:
-                ingresos_catering_a += precios_base[prod]
+            # Probabilidad dinámica
+            if random.random() < probabilidad_venta:
+                prod = random.choice(productos_catering)
+                # Cantidad proporcional a la intensidad
+                cantidad = 1 if factor_evento < 1.5 else 2
 
-        # Merchandising
-        if puede_vender(club_id, 'tienda'):
-            j_id = obtener_id_jugador_aleatorio(club_id)
-            if j_id:
-                registrar_venta_camiseta(j_id, cantidad=1)
+                registrar_venta_catering(club_id, prod, cantidad=cantidad)
+
                 if club_id == club_a_id:
-                    ingresos_tienda_a += obtener_precio_camiseta(j_id)
+                    ingresos_catering_a += (precios_base[prod] * cantidad)
+
+        # --- Merchandising ---
+        if puede_vender(club_id, 'tienda'):
+            # La gente compra más si el equipo marca o hay emoción
+            if random.random() < (probabilidad_venta * 0.5):  # Menos probable que comer
+                j_id = obtener_id_jugador_aleatorio(club_id)
+                if j_id:
+                    registrar_venta_camiseta(j_id, cantidad=1)
+                    if club_id == club_a_id:
+                        ingresos_tienda_a += obtener_precio_camiseta(j_id)
 
         if protagonista_a:
             posesion_a += 1
