@@ -18,7 +18,7 @@ class EstadioSelect(discord.ui.Select):
             discord.SelectOption(label="Mejorar Estadio", value="upgrade", emoji="🏗️"),
             discord.SelectOption(label="Renombrar Estadio", value="rename", emoji="✍️"),
             discord.SelectOption(label="Gestionar Servicios", value="servicios", emoji="🌭"),
-            discord.SelectOption(label="Establecer precio de Entradas", value="entradas", emoji="🌭"),
+            discord.SelectOption(label="Establecer precio de Entradas", value="entradas", emoji="🎟️"),
             discord.SelectOption(label="Ver Plantilla", value="plantilla", emoji="📋"),
             discord.SelectOption(label="Entrenar Jugadores", value="entrenar", emoji="🏋️"),
             discord.SelectOption(label="Ir al Mercado", value="mercado", emoji="🛒"),
