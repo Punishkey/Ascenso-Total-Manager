@@ -204,9 +204,12 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b,
     asistencia = 0
     if es_local_a:
         capacidad, precio_entrada, popularidad, nivel = obtener_configuracion_partido(club_a_id)
+        aforo_base = max(10, int(capacidad * 0.01))
         factor_elasticidad = 0.7 if precio_entrada >= (nivel * 1) else 1.0
         factor_rival = 1.2 if obtener_media_titular(club_b_id) > media_a else 0.8
-        asistencia = int(capacidad * (popularidad / 100) * factor_rival * factor_elasticidad)
+
+        # Asistencia calculada con un suelo mínimo
+        asistencia = int(aforo_base + (capacidad * (popularidad / 100) * factor_rival * factor_elasticidad))
         ingresos_tickets = asistencia * precio_entrada
 
     # --- Popularidad ---
