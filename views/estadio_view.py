@@ -1,6 +1,7 @@
 import discord
 from config import CAPACIDAD_POR_NIVEL, COSTE_MEJORA_ESTADIO, NOMBRE_MONEDA
 from db.club_queries import obtener_info_estadio, obtener_tiempo_restante_construccion, check_y_aplicar_mejora
+from db.database import get_connection
 from db.estadio_queries import obtener_info_club_y_estadio
 from views.plantilla_view import PlantillaPaginator
 from views.ConfirmacionView import ConfirmacionMejoraView
@@ -17,6 +18,7 @@ class EstadioSelect(discord.ui.Select):
             discord.SelectOption(label="Mejorar Estadio", value="upgrade", emoji="🏗️"),
             discord.SelectOption(label="Renombrar Estadio", value="rename", emoji="✍️"),
             discord.SelectOption(label="Gestionar Servicios", value="servicios", emoji="🌭"),
+            discord.SelectOption(label="Establecer precio de Entradas", value="entradas", emoji="🌭"),
             discord.SelectOption(label="Ver Plantilla", value="plantilla", emoji="📋"),
             discord.SelectOption(label="Entrenar Jugadores", value="entrenar", emoji="🏋️"),
             discord.SelectOption(label="Ir al Mercado", value="mercado", emoji="🛒"),
@@ -48,6 +50,9 @@ class EstadioSelect(discord.ui.Select):
         elif self.values[0] == "servicios":
             view = ServiciosView(self.club_id, self.user_id)
             await interaction.response.edit_message(embed=view.embed, view=view)
+
+        if self.values[0] == "entradas":
+            await interaction.response.send_modal(PrecioEntradaModal(self.club_id))
 
         elif self.values[0] == "plantilla":
             view = PlantillaPaginator(self.club_id, interaction.user.id)
@@ -128,3 +133,57 @@ class VolverEstadioView(discord.ui.View):
         embed = view.actualizar_embed_inicial(self.club_id, self.user_id)
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+
+class PrecioEntradaModal(discord.ui.Modal, title='Gestionar Precio de Entradas'):
+    precio = discord.ui.TextInput(
+        label='Precio por ticket',
+        style=discord.TextStyle.short,
+        placeholder='Introduce el precio (ej. 15)',
+        min_length=1,
+        max_length=3,
+        required=True,
+    )
+
+    def __init__(self, club_id):
+        super().__init__()
+        self.club_id = club_id
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            nuevo_precio = int(self.precio.value)
+
+            # Obtenemos el nivel actual para calcular el límite
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT nivel FROM estadios WHERE club_id = ?", (self.club_id,))
+            resultado = cursor.fetchone()
+            nivel = resultado[0] if resultado else 1
+            conn.close()
+
+            # Límite: 1 moneda por nivel (Nivel 1 = Máx 1, Nivel 5 = Máx 5)
+            precio_maximo_permitido = nivel * 1
+
+            if nuevo_precio > precio_maximo_permitido:
+                await interaction.response.send_message(
+                    f"❌ Tu estadio es de **nivel {nivel}**. El precio máximo permitido es **{precio_maximo_permitido} {NOMBRE_MONEDA}**.",
+                    ephemeral=True
+                )
+                return
+
+            if nuevo_precio < 1:
+                await interaction.response.send_message("❌ El precio debe ser al menos 1 moneda.", ephemeral=True)
+                return
+
+            # Actualizamos en BD
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE estadios SET precio_entrada = ? WHERE club_id = ?", (nuevo_precio, self.club_id))
+            conn.commit()
+            conn.close()
+
+            await interaction.response.send_message(
+                f"✅ Precio de entrada fijado en **{nuevo_precio} {NOMBRE_MONEDA}**.", ephemeral=True)
+
+        except ValueError:
+            await interaction.response.send_message("❌ Por favor, introduce un número válido.", ephemeral=True)

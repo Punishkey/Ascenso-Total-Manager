@@ -11,6 +11,7 @@ from db.transaction_queries import registrar_resultado_partido
 from views.estadio_view import VolverEstadioView
 from db.merch_queries import (puede_vender, registrar_venta_catering, registrar_venta_camiseta,
                               obtener_precio_camiseta, obtener_precios_catering, calcular_penalizacion_precio)
+from db.estadio_queries import obtener_configuracion_partido
 
 
 def registrar_evento_db(partido_id, jugador, equipo, tipo, minuto):
@@ -78,7 +79,7 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b,
 
         # Lógica de Localía: Solo el equipo local (según es_local_a) registra ventas
         es_local_actual = True if (club_id == club_a_id and es_local_a) or (
-                    club_id == club_b_id and not es_local_a) else False
+                club_id == club_b_id and not es_local_a) else False
 
         if es_local_actual:
             if puede_vender(club_id, 'catering'):
@@ -152,8 +153,24 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b,
         embed.set_field_at(1, name=nombre_b, value=f"Media: {media_b:.1f}\nGoles: {goles_b}", inline=True)
         await msg.edit(embed=embed)
 
+    # --- Cálculo Entradas ---
+    ingresos_tickets = 0
+    asistencia = 0
+    if es_local_a:
+        # Se asume que obtener_configuracion_partido devuelve (capacidad, precio_entrada, popularidad, nivel)
+        capacidad, precio_entrada, popularidad, nivel = obtener_configuracion_partido(club_a_id)
+
+        # Aplicamos Factor de Elasticidad: penalizamos un 30% si el precio llega al límite máximo (nivel * 1)
+        factor_elasticidad = 0.7 if precio_entrada >= (nivel * 1) else 1.0
+
+        factor_rival = 1.2 if obtener_media_titular(club_b_id) > media_a else 0.8
+        asistencia = int(capacidad * (popularidad / 100) * factor_rival * factor_elasticidad)
+        ingresos_tickets = asistencia * precio_entrada
+
     resultados = procesar_fin_partido(club_a_id, club_b_id, goles_a, goles_b)
-    total_ingresos_final = resultados['partido'] + resultados['victoria'] + ingresos_catering_a + ingresos_tienda_a
+    total_ingresos_final = resultados['partido'] + resultados[
+        'victoria'] + ingresos_catering_a + ingresos_tienda_a + ingresos_tickets
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT jugador_nombre, minuto FROM eventos_partido WHERE partido_id = ? AND tipo_evento = 'gol'",
@@ -175,6 +192,7 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b,
     resumen_embed.add_field(name="Ingresos del Partido", value=(
         f"⚽ Partido jugado: +{resultados['partido']} {NOMBRE_MONEDA}\n"
         f"🏆 Victoria: +{resultados['victoria']} {NOMBRE_MONEDA}\n"
+        f"🎟️ Entradas ({asistencia} personas): +{ingresos_tickets:.0f} {NOMBRE_MONEDA}\n"
         f"🌭 Catering: +{ingresos_catering_a:.0f} {NOMBRE_MONEDA}\n"
         f"👕 Tienda: +{ingresos_tienda_a:.0f} {NOMBRE_MONEDA}\n"
         f"--------------------------\n"

@@ -109,3 +109,14 @@ class ServiciosView(discord.ui.View):
 
         modal = ConfirmarMejoraServicioModal(self.club_id, 'nivel_tienda', nivel)
         await interaction.response.send_modal(modal)
+
+    @discord.ui.button(label="Volver al Estadio", style=discord.ButtonStyle.secondary, emoji="🏟️", row=2)
+    async def volver_estadio(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        from views.estadio_view import EstadioView
+
+        # Instanciamos la vista principal del estadio
+        view = EstadioView(self.club_id, self.user_id)
+        embed = view.actualizar_embed_inicial(self.club_id, self.user_id)
+
+        # Editamos el mensaje actual para volver al menú principal
+        await interaction.response.edit_message(embed=embed, view=view)

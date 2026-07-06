@@ -53,3 +53,15 @@ def obtener_tiempo_restante(fecha_fin_str):
     horas, rem = divmod(int(restante.total_seconds()), 3600)
     minutos, _ = divmod(rem, 60)
     return f"{horas}h {minutos}m"
+
+def obtener_configuracion_partido(club_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Obtenemos capacidad, precio y popularidad
+    cursor.execute('''
+        SELECT capacidad, precio_entrada, popularidad, nivel 
+        FROM estadios WHERE club_id = ?
+    ''', (club_id,))
+    res = cursor.fetchone()
+    conn.close()
+    return res if res else (1500, 10, 5, 1) # Valores por defecto si no existe
