@@ -146,3 +146,20 @@ def puede_vender(club_id, tipo_servicio):
     res = cursor.fetchone()
     conn.close()
     return res and res[0] >= 1
+
+
+def calcular_penalizacion_precio(precio_actual, precio_base_ideal):
+    """
+    Si el precio es igual al base, devuelve 1.0 (100% probabilidad).
+    Si el precio es el doble del base, penaliza drásticamente.
+    """
+    if precio_actual <= precio_base_ideal:
+        return 1.0
+
+    # Diferencia porcentual
+    exceso = (precio_actual - precio_base_ideal) / precio_base_ideal
+
+    # Penalización exponencial:
+    # Si el precio es un 50% más caro, la probabilidad de venta cae un 40% (0.6)
+    penalizacion = max(0.1, 1.0 - (exceso * 0.8))
+    return penalizacion
