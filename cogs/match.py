@@ -76,6 +76,16 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b,
     goles_b = 0
     precios_base_catering = {"bebida": 2.0, "patatas": 3.0, "bocadillo": 5.0}
 
+    # --- Guardar estado inicial ---
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, nombre, velocidad, resistencia, anticipacion, serenidad, trabajo_equipo, precision_pases, control_balon, profesionalidad FROM jugadores WHERE club_id IN (?, ?)",
+        (club_a_id, club_b_id))
+    estado_inicial = {fila[0]: {"nombre": fila[1], "attr": list(fila[2:])} for fila in cursor.fetchall()}
+    conn.close()
+
+
     for minuto in [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90]:
         await asyncio.sleep(3)
         factor_tiempo = (minuto / 90) + 0.5
@@ -227,6 +237,30 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b,
     jugador_estrella = max(historial_jugadores, key=lambda x: historial_jugadores[x]["total"])
     datos_estrella = historial_jugadores[jugador_estrella]
 
+    # --- Comparar evolución ---
+    nombres_attr = ["Vel", "Res", "Anti", "Sere", "Trab", "Pase", "Ctrl", "Prof"]
+    evolucion_texto = []
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, velocidad, resistencia, anticipacion, serenidad, trabajo_equipo, precision_pases, control_balon, profesionalidad FROM jugadores WHERE club_id IN (?, ?)",
+        (club_a_id, club_b_id))
+    for fila in cursor.fetchall():
+        j_id, *attr_nuevos = fila
+        if j_id in estado_inicial:
+            cambios_jugador = []
+            for i in range(len(attr_nuevos)):
+                dif = attr_nuevos[i] - estado_inicial[j_id]["attr"][i]
+                if dif != 0:
+                    signo = "+" if dif > 0 else ""
+                    cambios_jugador.append(f"{nombres_attr[i]} {signo}{dif}")
+
+            if cambios_jugador:
+                evolucion_texto.append(f"**{estado_inicial[j_id]['nombre']}**: {', '.join(cambios_jugador)}")
+    conn.close()
+
+
     resumen_embed = discord.Embed(title="📊 Resumen del Partido", color=discord.Color.green())
     resumen_embed.add_field(name="Resultado Final", value=f"**{nombre_a} {goles_a} - {goles_b} {nombre_b}**",
                             inline=False)
@@ -252,6 +286,12 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b,
     resumen_embed.add_field(name="Tarjetas Mostradas",
                             value="\n".join(tarjetas_jugadores) if tarjetas_jugadores else "Partido limpio.",
                             inline=False)
+
+    if evolucion_texto:
+        contenido = "\n".join(evolucion_texto[:5])
+        resumen_embed.add_field(name="📈 Evolución de Atributos", value=contenido, inline=False)
+    else:
+        resumen_embed.add_field(name="📈 Evolución de Atributos", value="Sin cambios significativos.", inline=False)
 
     view_final = VolverEstadioView(club_a_id, interaction.user.id)
     await interaction.followup.send(embed=resumen_embed, view=view_final)
