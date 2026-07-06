@@ -20,7 +20,7 @@ def init_db():
                               (id INTEGER PRIMARY KEY, club_id INTEGER, nombre TEXT, numero INTEGER, posicion_id TEXT, edad INTEGER,
                               velocidad INTEGER, resistencia INTEGER, anticipacion INTEGER, serenidad INTEGER,
                               trabajo_equipo INTEGER, precision_pases INTEGER, control_balon INTEGER,
-                              profesionalidad INTEGER, potencial INTEGER, valor INTEGER, es_estrella BOOLEAN DEFAULT 0, FOREIGN KEY (club_id) REFERENCES clubes(id))''')
+                              profesionalidad INTEGER, potencial INTEGER, valor INTEGER, es_estrella BOOLEAN DEFAULT 0, energia INTEGER DEFAULT 100, estado TEXT DEFAULT 'Sano', FOREIGN KEY (club_id) REFERENCES clubes(id))''')
             # Tabla de posiciones
             cursor.execute('''CREATE TABLE IF NOT EXISTS posiciones 
                               (id INTEGER PRIMARY KEY, abreviatura TEXT UNIQUE, nombre_completo TEXT)''')
@@ -32,7 +32,7 @@ def init_db():
                               (id INTEGER PRIMARY KEY AUTOINCREMENT, jugador_id INTEGER, club_vendedor_id INTEGER, precio INTEGER, fecha_publicacion DATETIME, FOREIGN KEY (jugador_id) REFERENCES jugadores(id), FOREIGN KEY (club_vendedor_id) REFERENCES clubes(id))''')
             # Crear tabla historial Jugadores
             cursor.execute('''CREATE TABLE IF NOT EXISTS historico_jugadores 
-                              (id INTEGER PRIMARY KEY AUTOINCREMENT, jugador_id INTEGER, nombre TEXT, numero INTEGER, posicion_id TEXT, edad INTEGER, velocidad_base INTEGER, resistencia_base INTEGER, anticipacion_base INTEGER, serenidad_base INTEGER, trabajo_equipo_base INTEGER, precision_pases_base INTEGER, control_balon_base INTEGER, profesionalidad_base INTEGER, FOREIGN KEY(jugador_id) REFERENCES jugadores(id));''')
+                              (id INTEGER PRIMARY KEY AUTOINCREMENT, jugador_id INTEGER, nombre TEXT, numero INTEGER, posicion_id TEXT, edad INTEGER, velocidad_base INTEGER, resistencia_base INTEGER, anticipacion_base INTEGER, serenidad_base INTEGER, trabajo_equipo_base INTEGER, precision_pases_base INTEGER, control_balon_base INTEGER, profesionalidad_base INTEGER, es_estrella BOOLEAN DEFAULT 0, energia INTEGER DEFAULT 100, estado TEXT DEFAULT 'Sano', foreign key(jugador_id) REFERENCES jugadores(id));''')
             # Crear tabla servicios del estadio
             cursor.execute('''CREATE TABLE IF NOT EXISTS estadio_servicios 
                               (club_id INTEGER PRIMARY KEY, nivel_catering INTEGER DEFAULT 1, nivel_tienda INTEGER DEFAULT 1, fin_catering TEXT DEFAULT NULL, fin_tienda TEXT DEFAULT NULL, FOREIGN KEY(club_id) REFERENCES clubes(id));''')

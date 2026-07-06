@@ -1,7 +1,7 @@
 import discord
 from discord import ui
 from datetime import datetime, timedelta
-from db.estadio_queries import obtener_datos_spa, tiene_spa
+from db.estadio_queries import obtener_datos_spa, tiene_spa, aplicar_recuperacion_spa
 from db.club_queries import obtener_presupuesto, restar_dinero
 from db.database import get_connection
 from config import NOMBRE_MONEDA
@@ -15,9 +15,14 @@ class InstalacionesView(ui.View):
 
     def get_embed(self):
         datos = obtener_datos_spa(self.club_id)
-        nivel = datos['nivel']
-        nivel_estadio = datos['nivel_estadio']
-        fecha_fin_str = datos['fecha_fin']
+
+        # Validación de seguridad:
+        if datos is None:
+            return discord.Embed(title="Error", description="No se encontraron datos del SPA para este club.",
+                                 color=discord.Color.red())
+        nivel = datos.get('nivel', 0)
+        nivel_estadio = datos.get('nivel_estadio', 1)
+        fecha_fin_str = datos.get('fecha_fin')
 
         embed = discord.Embed(title="🏗️ Panel de Instalaciones", color=discord.Color.blue())
 
@@ -40,12 +45,10 @@ class InstalacionesView(ui.View):
         nivel_actual = datos['nivel']
         nivel_estadio = datos['nivel_estadio']
 
-        # 1. Validación de Nivel
         if nivel_actual >= nivel_estadio:
             await interaction.response.send_message("❌ El SPA no puede superar el nivel de tu estadio.", ephemeral=True)
             return
 
-        # 2. Cálculo de Coste (20k base + 10k por nivel)
         coste = 20000 + (nivel_actual * 10000)
         presupuesto = obtener_presupuesto(self.club_id)
 
@@ -54,11 +57,9 @@ class InstalacionesView(ui.View):
                                                     ephemeral=True)
             return
 
-        # 3. Cálculo de Tiempo (2h + 1h por nivel estadio)
         horas_construccion = 2 + nivel_estadio
         fecha_fin = (datetime.now() + timedelta(hours=horas_construccion)).isoformat()
 
-        # 4. Ejecución en BD
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute(
@@ -76,8 +77,10 @@ class InstalacionesView(ui.View):
         if not tiene_spa(self.club_id):
             await interaction.response.send_message("❌ Debes construir el SPA primero.", ephemeral=True)
             return
-        # Aquí iría el modal o menú de selección de jugador
-        await interaction.response.send_message("🧖 Selecciona un jugador para el tratamiento.", ephemeral=True)
+
+        view = SeleccionarJugadorSpaView(self.club_id, self.user_id)
+        await interaction.response.send_message("Selecciona al jugador que quieres recuperar:", view=view,
+                                                ephemeral=True)
 
     @ui.button(label="Volver al Estadio", style=discord.ButtonStyle.danger, emoji="🏟️")
     async def volver(self, interaction: discord.Interaction, _button: ui.Button):
@@ -85,3 +88,40 @@ class InstalacionesView(ui.View):
         view = EstadioView(self.club_id, self.user_id)
         embed = view.actualizar_embed_inicial(self.club_id, self.user_id)
         await interaction.response.edit_message(embed=embed, view=view)
+
+
+class SeleccionarJugadorSpaView(ui.View):
+    def __init__(self, club_id, user_id):
+        super().__init__(timeout=60)
+        self.club_id = club_id
+        self.user_id = user_id
+        self.add_item(JugadorSelect(club_id))
+
+
+class JugadorSelect(ui.Select):
+    def __init__(self, club_id):
+        self.club_id = club_id
+        conn = get_connection()
+        cursor = conn.cursor()
+        # Filtro: Solo jugadores Sano o Tocado, NO lesionados
+        cursor.execute("SELECT id, nombre, energia, estado FROM jugadores WHERE club_id = ? AND estado != 'Lesionado' AND energia < 100", (club_id,))
+        jugadores = cursor.fetchall()
+        conn.close()
+
+        options = [
+            discord.SelectOption(label=f"{j[1]} - {j[3]} ({j[2]}%)", value=str(j[0]))
+            for j in jugadores
+        ]
+
+        super().__init__(placeholder="Elige un jugador para el SPA...", options=options if options else [
+            discord.SelectOption(label="No hay jugadores disponibles", value="none")])
+
+    async def callback(self, interaction: discord.Interaction):
+        if self.values[0] == "none":
+            return await interaction.response.send_message("No hay jugadores que necesiten energía.", ephemeral=True)
+
+        jugador_id = int(self.values[0])
+        resultado = aplicar_recuperacion_spa(self.club_id, jugador_id)
+
+        await interaction.response.send_message(resultado, ephemeral=True)
+        return None

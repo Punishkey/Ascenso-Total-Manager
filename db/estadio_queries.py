@@ -1,4 +1,5 @@
 from datetime import datetime
+import random
 
 from db.database import get_connection
 
@@ -130,3 +131,54 @@ def inicializar_instalaciones(club_id):
     cursor.execute("INSERT OR IGNORE INTO estadio_instalaciones (club_id, spa_nivel) VALUES (?, 0)", (club_id,))
     conn.commit()
     conn.close()
+
+
+def aplicar_recuperacion_spa(club_id, jugador_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Obtener datos
+    cursor.execute("SELECT energia, estado FROM jugadores WHERE id = ?", (jugador_id,))
+    jugador = cursor.fetchone()
+    energia_actual, estado_actual = jugador
+
+    cursor.execute("SELECT spa_usos_seguidos FROM estadio_instalaciones WHERE club_id = ?", (club_id,))
+    usos = cursor.fetchone()[0]
+
+    # Calcular probabilidad de lesión (aumenta según usos seguidos)
+    # Ejemplo: 0 usos = 5% riesgo, 1 uso = 10%, 2 usos = 15%...
+    probabilidad_lesion = (usos + 1) * 0.05
+    es_lesion = random.random() < probabilidad_lesion
+
+    # Lógica de estados
+    nueva_energia = min(100, energia_actual + 5)
+
+    if es_lesion:
+        # Se vuelve Lesionado (Estado crítico)
+        nuevo_estado = 'Lesionado'
+        cursor.execute("UPDATE jugadores SET energia = ?, estado = ? WHERE id = ?",
+                       (nueva_energia, nuevo_estado, jugador_id))
+        cursor.execute("UPDATE estadio_instalaciones SET spa_usos_seguidos = 0 WHERE club_id = ?", (club_id,))
+        mensaje = "⚠️ ¡El SPA ha provocado una sobrecarga! El jugador ha terminado 'Lesionado'."
+
+    elif energia_actual < 30:
+        # Si estaba muy bajo, pasa a 'Tocado' en lugar de 'Sano' por el esfuerzo
+        nuevo_estado = 'Tocado'
+        cursor.execute("UPDATE jugadores SET energia = ?, estado = ? WHERE id = ?",
+                       (nueva_energia, nuevo_estado, jugador_id))
+        cursor.execute("UPDATE estadio_instalaciones SET spa_usos_seguidos = spa_usos_seguidos + 1 WHERE club_id = ?",
+                       (club_id,))
+        mensaje = "🧖 Recuperación completada, pero el jugador queda 'Tocado' por la intensidad."
+
+    else:
+        # Caso exitoso
+        nuevo_estado = 'Sano'
+        cursor.execute("UPDATE jugadores SET energia = ?, estado = ? WHERE id = ?",
+                       (nueva_energia, nuevo_estado, jugador_id))
+        cursor.execute("UPDATE estadio_instalaciones SET spa_usos_seguidos = spa_usos_seguidos + 1 WHERE club_id = ?",
+                       (club_id,))
+        mensaje = "🧖 Recuperación exitosa. Jugador 'Sano'. +5% energía."
+
+    conn.commit()
+    conn.close()
+    return mensaje

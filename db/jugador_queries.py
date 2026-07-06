@@ -1,5 +1,6 @@
 from config import POTENCIAL_FACTOR, EDAD_DECLIVE
 from db.database import get_connection
+import random
 
 
 def crear_jugador(club_id, nombre, numero, posicion_id, edad, vel, res, anti, sere, trab, pase, ctrl, prof, pot):
@@ -228,3 +229,30 @@ def obtener_id_jugador_aleatorio(club_id):
     res = cursor.fetchone()
     conn.close()
     return res[0] if res else None
+
+
+def procesar_estado_post_partido(club_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Obtenemos todos los jugadores del club
+    cursor.execute("SELECT id, energia, estado FROM jugadores WHERE club_id = ?", (club_id,))
+    jugadores = cursor.fetchall()
+
+    for j_id, energia, estado in jugadores:
+        nuevo_estado = estado
+
+        # Lógica de curación automática
+        if estado == 'Tocado':
+            # Si estaba tocado, tiene un 50% de probabilidades de curarse tras el partido
+            if random.random() < 0.5:
+                nuevo_estado = 'Sano'
+
+        # Lógica de lesión por juego (Si jugó y estaba 'Tocado', riesgo extra)
+        if estado == 'Tocado' and random.random() < 0.2:
+            nuevo_estado = 'Lesionado'
+
+        cursor.execute("UPDATE jugadores SET estado = ? WHERE id = ?", (nuevo_estado, j_id))
+
+    conn.commit()
+    conn.close()

@@ -42,9 +42,20 @@ def procesar_fin_partido(club_a_id, club_b_id, goles_favor, goles_contra):
 
 
 async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b, es_local_a=True):
-    # Aplicamos bono de localía (+2.0 media)
-    media_a = obtener_media_titular(club_a_id) + (2.0 if es_local_a else 0)
-    media_b = obtener_media_titular(club_b_id) + (2.0 if not es_local_a else 0)
+    # Cálculo de media ajustada con estados
+    def obtener_media_ajustada(club_id):
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT estado FROM jugadores WHERE club_id = ?", (club_id,))
+        estados = cursor.fetchall()
+        conn.close()
+        media = obtener_media_titular(club_id)
+        for (estado,) in estados:
+            if estado == 'Tocado': media *= 0.95
+        return media
+
+    media_a = obtener_media_ajustada(club_a_id) + (2.0 if es_local_a else 0)
+    media_b = obtener_media_ajustada(club_b_id) + (2.0 if not es_local_a else 0)
 
     partido_id_actual = registrar_resultado_partido(club_a_id, club_b_id, 0, 0)
 
@@ -72,12 +83,34 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b,
         factor_evento = 2.0 if tipo_evento == "gol" else (1.2 if tipo_evento == "tarjeta" else 1.0)
         probabilidad_venta = 0.4 * factor_tiempo * factor_evento
 
+        # Lógica de lesión durante el juego (Mejora integrada)
+        jugador_res = obtener_jugador_aleatorio(club_a_id if random.random() < 0.5 else club_b_id)
+
+        if isinstance(jugador_res, dict):
+            nombre_jugador = jugador_res.get('nombre')
+            estado_jugador = jugador_res.get('estado', 'Sano')
+        else:
+            nombre_jugador = jugador_res
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT estado FROM jugadores WHERE nombre = ? AND club_id = ?",
+                           (nombre_jugador, club_a_id if random.random() < 0.5 else club_b_id))
+            row = cursor.fetchone()
+            estado_jugador = row[0] if row else 'Sano'
+            conn.close()
+
+        if estado_jugador == 'Tocado' and random.random() < 0.15:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE jugadores SET estado = 'Lesionado' WHERE nombre = ?", (nombre_jugador,))
+            conn.commit()
+            conn.close()
+
         prob_a = media_a / (media_a + media_b)
         protagonista_a = random.random() < prob_a
         club_id = club_a_id if protagonista_a else club_b_id
         club_nombre = nombre_a if protagonista_a else nombre_b
 
-        # Lógica de Localía: Solo el equipo local (según es_local_a) registra ventas
         es_local_actual = True if (club_id == club_a_id and es_local_a) or (
                 club_id == club_b_id and not es_local_a) else False
 
@@ -105,30 +138,33 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b,
             posesion_a += 1
         else:
             posesion_b += 1
-        jugador = obtener_jugador_aleatorio(club_id)
-        if jugador not in historial_jugadores: historial_jugadores[jugador] = {"equipo": club_nombre, "total": 0}
-        historial_jugadores[jugador]["total"] += 1
+
+        jugador_nombre = nombre_jugador if nombre_jugador else "Jugador"
+        if jugador_nombre not in historial_jugadores: historial_jugadores[jugador_nombre] = {"equipo": club_nombre,
+                                                                                             "total": 0}
+        historial_jugadores[jugador_nombre]["total"] += 1
 
         if tipo_evento == "tarjeta":
-            if jugador not in estado_tarjetas: estado_tarjetas[jugador] = {"amarillas": 0, "expulsado": False}
-            if not estado_tarjetas[jugador]["expulsado"]:
+            if jugador_nombre not in estado_tarjetas: estado_tarjetas[jugador_nombre] = {"amarillas": 0,
+                                                                                         "expulsado": False}
+            if not estado_tarjetas[jugador_nombre]["expulsado"]:
                 if random.random() < 0.2:
-                    estado_tarjetas[jugador]["expulsado"] = True
+                    estado_tarjetas[jugador_nombre]["expulsado"] = True
                     tipo_tarjeta = "Roja"
                     icono = "🟥"
                 else:
-                    estado_tarjetas[jugador]["amarillas"] += 1
-                    if estado_tarjetas[jugador]["amarillas"] >= 2:
-                        estado_tarjetas[jugador]["expulsado"] = True
+                    estado_tarjetas[jugador_nombre]["amarillas"] += 1
+                    if estado_tarjetas[jugador_nombre]["amarillas"] >= 2:
+                        estado_tarjetas[jugador_nombre]["expulsado"] = True
                         tipo_tarjeta = "Roja (doble amarilla)"
                         icono = "🟥"
                     else:
                         tipo_tarjeta = "Amarilla"
                         icono = "🟨"
-                registrar_evento_db(partido_id_actual, jugador, club_nombre, tipo_tarjeta, minuto)
-                texto = f"{icono} **{tipo_tarjeta}**: El árbitro amonesta a {jugador} del equipo {club_nombre}."
-                tarjetas_jugadores.append(f"{icono} {tipo_tarjeta} | Min. {minuto}: {jugador} ({club_nombre})")
-                if estado_tarjetas[jugador]["expulsado"]:
+                registrar_evento_db(partido_id_actual, jugador_nombre, club_nombre, tipo_tarjeta, minuto)
+                texto = f"{icono} **{tipo_tarjeta}**: El árbitro amonesta a {jugador_nombre} del equipo {club_nombre}."
+                tarjetas_jugadores.append(f"{icono} {tipo_tarjeta} | Min. {minuto}: {jugador_nombre} ({club_nombre})")
+                if estado_tarjetas[jugador_nombre]["expulsado"]:
                     if protagonista_a:
                         media_a -= 5
                     else:
@@ -136,17 +172,17 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b,
         elif tipo_evento == "gol":
             if random.random() < (prob_a if protagonista_a else 1 - prob_a):
                 frase = random.choice(EVENTOS_NARRATIVA[tipo_evento])
-                texto = frase.format(jugador=jugador, equipo=club_nombre)
-                registrar_evento_db(partido_id_actual, jugador, club_nombre, "gol", minuto)
+                texto = frase.format(jugador=jugador_nombre, equipo=club_nombre)
+                registrar_evento_db(partido_id_actual, jugador_nombre, club_nombre, "gol", minuto)
                 if protagonista_a:
                     goles_a += 1
                 else:
                     goles_b += 1
             else:
-                texto = f"¡Gran ocasión de {jugador} del equipo {club_nombre}, pero el portero lo evita!"
+                texto = f"¡Gran ocasión de {jugador_nombre} del equipo {club_nombre}, pero el portero lo evita!"
         else:
             frase = random.choice(EVENTOS_NARRATIVA[tipo_evento])
-            texto = frase.format(jugador=jugador, equipo=club_nombre)
+            texto = frase.format(jugador=jugador_nombre, equipo=club_nombre)
 
         embed.description = f"**Minuto {minuto}'**: {texto}"
         embed.set_field_at(0, name=nombre_a, value=f"Media: {media_a:.1f}\nGoles: {goles_a}", inline=True)
@@ -158,10 +194,7 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b,
     asistencia = 0
     if es_local_a:
         capacidad, precio_entrada, popularidad, nivel = obtener_configuracion_partido(club_a_id)
-
-        # Aplicamos Factor de Elasticidad: penalizamos un 30% si el precio llega al límite máximo (nivel * 1)
         factor_elasticidad = 0.7 if precio_entrada >= (nivel * 1) else 1.0
-
         factor_rival = 1.2 if obtener_media_titular(club_b_id) > media_a else 0.8
         asistencia = int(capacidad * (popularidad / 100) * factor_rival * factor_elasticidad)
         ingresos_tickets = asistencia * precio_entrada
@@ -186,6 +219,7 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b,
     conn.close()
     texto_goles = "\n".join([f"⚽ Min. {m}: {j}" for j, m in goleadores]) if goleadores else "Sin goles"
 
+    # --- Resumen Final ---
     total_eventos = posesion_a + posesion_b
     porcentaje_a = int((posesion_a / total_eventos) * 100) if total_eventos > 0 else 50
     porcentaje_b = 100 - porcentaje_a

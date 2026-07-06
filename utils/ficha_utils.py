@@ -44,9 +44,19 @@ async def mostrar_ficha_jugador(interaction: discord.Interaction, club_id: int, 
 
 
 def obtener_icono_progreso(actual, base):
-    if actual > base: return "⬆️"
-    elif actual < base: return "⬇️"
-    return "➖"
+    # Convertimos ambos a int para evitar el error de comparación
+    try:
+        actual = int(actual)
+        base = int(base)
+    except (ValueError, TypeError):
+        return ""  # O devuelve un icono neutro si los datos están mal
+
+    if actual > base:
+        return "⬆️"
+    elif actual < base:
+        return "⬇️"
+    else:
+        return "▬"
 
 class FichaJugadorView(discord.ui.View):
     def __init__(self, club_id, jugador_id, media):
