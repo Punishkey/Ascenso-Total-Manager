@@ -11,7 +11,7 @@ from db.transaction_queries import registrar_resultado_partido
 from views.estadio_view import VolverEstadioView
 from db.merch_queries import (puede_vender, registrar_venta_catering, registrar_venta_camiseta,
                               obtener_precio_camiseta, obtener_precios_catering, calcular_penalizacion_precio)
-from db.estadio_queries import obtener_configuracion_partido
+from db.estadio_queries import obtener_configuracion_partido, actualizar_popularidad_partido
 
 
 def registrar_evento_db(partido_id, jugador, equipo, tipo, minuto):
@@ -157,7 +157,6 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b,
     ingresos_tickets = 0
     asistencia = 0
     if es_local_a:
-        # Se asume que obtener_configuracion_partido devuelve (capacidad, precio_entrada, popularidad, nivel)
         capacidad, precio_entrada, popularidad, nivel = obtener_configuracion_partido(club_a_id)
 
         # Aplicamos Factor de Elasticidad: penalizamos un 30% si el precio llega al límite máximo (nivel * 1)
@@ -166,6 +165,14 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b,
         factor_rival = 1.2 if obtener_media_titular(club_b_id) > media_a else 0.8
         asistencia = int(capacidad * (popularidad / 100) * factor_rival * factor_elasticidad)
         ingresos_tickets = asistencia * precio_entrada
+
+    # --- Popularidad ---
+    cambio_a = actualizar_popularidad_partido(club_a_id, goles_a > goles_b)
+    cambio_b = actualizar_popularidad_partido(club_b_id, goles_b > goles_a)
+
+    def obtener_mensaje_popularidad(cambio):
+        if cambio > 0: return "¡La afición está eufórica y la popularidad sube!"
+        return "La afición está decepcionada por el resultado..."
 
     resultados = procesar_fin_partido(club_a_id, club_b_id, goles_a, goles_b)
     total_ingresos_final = resultados['partido'] + resultados[
@@ -188,6 +195,9 @@ async def simular_partido(interaction, club_a_id, nombre_a, club_b_id, nombre_b,
 
     resumen_embed = discord.Embed(title="📊 Resumen del Partido", color=discord.Color.green())
     resumen_embed.add_field(name="Resultado Final", value=f"**{nombre_a} {goles_a} - {goles_b} {nombre_b}**",
+                            inline=False)
+    resumen_embed.add_field(name="Evolución de Popularidad",
+                            value=f"{nombre_a}: {obtener_mensaje_popularidad(cambio_a)}\n{nombre_b}: {obtener_mensaje_popularidad(cambio_b)}",
                             inline=False)
     resumen_embed.add_field(name="Ingresos del Partido", value=(
         f"⚽ Partido jugado: +{resultados['partido']} {NOMBRE_MONEDA}\n"

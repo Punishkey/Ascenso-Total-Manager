@@ -65,3 +65,26 @@ def obtener_configuracion_partido(club_id):
     res = cursor.fetchone()
     conn.close()
     return res if res else (1500, 10, 5, 1) # Valores por defecto si no existe
+
+
+def actualizar_popularidad_partido(club_id, es_victoria):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Obtenemos la popularidad actual
+    cursor.execute("SELECT popularidad FROM estadios WHERE club_id = ?", (club_id,))
+    res = cursor.fetchone()
+
+    if res:
+        popularidad_actual = res[0]
+        # +2 si gana, -2 si pierde. Mantenemos el rango entre 0 y 100.
+        cambio = 2 if es_victoria else -2
+        nueva_popularidad = max(0, min(100, popularidad_actual + cambio))
+
+        cursor.execute("UPDATE estadios SET popularidad = ? WHERE club_id = ?", (nueva_popularidad, club_id))
+        conn.commit()
+        conn.close()
+        return cambio
+
+    conn.close()
+    return 0
