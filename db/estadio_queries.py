@@ -88,3 +88,45 @@ def actualizar_popularidad_partido(club_id, es_victoria):
 
     conn.close()
     return 0
+
+def tiene_spa(club_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT spa_nivel FROM estadio_instalaciones WHERE club_id = ?", (club_id,))
+    res = cursor.fetchone()
+    conn.close()
+    return res and res[0] > 0
+
+
+def calcular_coste_spa(nivel_actual):
+    # Nivel 0 -> 1 cuesta 20k. Aumenta progresivamente.
+    return 20000 + (nivel_actual * 10000)
+
+
+def calcular_tiempo_construccion(nivel_estadio):
+    # Regla: 2 horas + 1 hora por nivel de estadio
+    horas = 2 + nivel_estadio
+    return horas
+
+
+def obtener_datos_spa(club_id):
+    inicializar_instalaciones(club_id)
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Obtenemos nivel del spa y nivel del estadio
+    cursor.execute('''SELECT i.spa_nivel, i.fecha_ultima_construccion, e.nivel
+                      FROM estadios e
+                      LEFT JOIN estadio_instalaciones i ON e.club_id = i.club_id
+                      WHERE e.club_id = ?''', (club_id,))
+    data = cursor.fetchone()
+    conn.close()
+
+    if not data: return {"nivel": 0, "fecha_fin": None, "nivel_estadio": 1}
+    return {"nivel": data[0], "fecha_fin": data[1], "nivel_estadio": data[2]}
+
+def inicializar_instalaciones(club_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT OR IGNORE INTO estadio_instalaciones (club_id, spa_nivel) VALUES (?, 0)", (club_id,))
+    conn.commit()
+    conn.close()

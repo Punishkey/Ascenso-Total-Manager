@@ -2,7 +2,7 @@ import discord
 from config import CAPACIDAD_POR_NIVEL, COSTE_MEJORA_ESTADIO, NOMBRE_MONEDA
 from db.club_queries import obtener_info_estadio, obtener_tiempo_restante_construccion, check_y_aplicar_mejora
 from db.database import get_connection
-from db.estadio_queries import obtener_info_club_y_estadio
+from db.estadio_queries import obtener_info_club_y_estadio, tiene_spa
 from views.plantilla_view import PlantillaPaginator
 from views.ConfirmacionView import ConfirmacionMejoraView
 from db.transaction_queries import obtener_estadisticas_club
@@ -19,6 +19,7 @@ class EstadioSelect(discord.ui.Select):
             discord.SelectOption(label="Renombrar Estadio", value="rename", emoji="✍️"),
             discord.SelectOption(label="Gestionar Servicios", value="servicios", emoji="🌭"),
             discord.SelectOption(label="Establecer precio de Entradas", value="entradas", emoji="🎟️"),
+            discord.SelectOption(label="Instalaciones", value="instalaciones", description="Gestiona tu SPA y mejoras", emoji="🏗️"),
             discord.SelectOption(label="Ver Plantilla", value="plantilla", emoji="📋"),
             discord.SelectOption(label="Entrenar Jugadores", value="entrenar", emoji="🏋️"),
             discord.SelectOption(label="Ir al Mercado", value="mercado", emoji="🛒"),
@@ -51,7 +52,12 @@ class EstadioSelect(discord.ui.Select):
             view = ServiciosView(self.club_id, self.user_id)
             await interaction.response.edit_message(embed=view.embed, view=view)
 
-        if self.values[0] == "entradas":
+        elif self.values[0] == "instalaciones":
+            from views.instalaciones_view import InstalacionesView
+            view = InstalacionesView(self.club_id, self.user_id)
+            await interaction.response.edit_message(embed=view.get_embed(), view=view)
+
+        elif self.values[0] == "entradas":
             await interaction.response.send_modal(PrecioEntradaModal(self.club_id))
 
         elif self.values[0] == "plantilla":
@@ -127,12 +133,9 @@ class VolverEstadioView(discord.ui.View):
 
     @discord.ui.button(label="Volver al Estadio", style=discord.ButtonStyle.secondary, emoji="🏟️")
     async def volver(self, interaction: discord.Interaction, _button: discord.ui.Button):
-
-        # Refrescamos la vista principal
         view = EstadioView(self.club_id, self.user_id)
         embed = view.actualizar_embed_inicial(self.club_id, self.user_id)
-
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        await interaction.response.edit_message(embed=embed, view=view)
 
 
 class PrecioEntradaModal(discord.ui.Modal, title='Gestionar Precio de Entradas'):
@@ -152,8 +155,6 @@ class PrecioEntradaModal(discord.ui.Modal, title='Gestionar Precio de Entradas')
     async def on_submit(self, interaction: discord.Interaction):
         try:
             nuevo_precio = int(self.precio.value)
-
-            # Obtenemos el nivel actual para calcular el límite
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("SELECT nivel FROM estadios WHERE club_id = ?", (self.club_id,))
@@ -161,9 +162,7 @@ class PrecioEntradaModal(discord.ui.Modal, title='Gestionar Precio de Entradas')
             nivel = resultado[0] if resultado else 1
             conn.close()
 
-            # Límite: 1 moneda por nivel (Nivel 1 = Máx 1, Nivel 5 = Máx 5)
             precio_maximo_permitido = nivel * 1
-
             if nuevo_precio > precio_maximo_permitido:
                 await interaction.response.send_message(
                     f"❌ Tu estadio es de **nivel {nivel}**. El precio máximo permitido es **{precio_maximo_permitido} {NOMBRE_MONEDA}**.",
@@ -175,7 +174,6 @@ class PrecioEntradaModal(discord.ui.Modal, title='Gestionar Precio de Entradas')
                 await interaction.response.send_message("❌ El precio debe ser al menos 1 moneda.", ephemeral=True)
                 return
 
-            # Actualizamos en BD
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("UPDATE estadios SET precio_entrada = ? WHERE club_id = ?", (nuevo_precio, self.club_id))
